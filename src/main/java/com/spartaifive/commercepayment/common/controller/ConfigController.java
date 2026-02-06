@@ -1,9 +1,9 @@
-package com.spartaifive.commercepayment.controller;
+package com.spartaifive.commercepayment.common.controller;
 
-import com.spartaifive.commercepayment.config.AppProperties;
-import com.spartaifive.commercepayment.config.ClientApiProperties;
-import com.spartaifive.commercepayment.config.PortOneProperties;
-import com.spartaifive.commercepayment.dto.PublicConfigResponse;
+import com.spartaifive.commercepayment.common.config.AppProperties;
+import com.spartaifive.commercepayment.common.config.ClientApiProperties;
+import com.spartaifive.commercepayment.common.config.PortOneProperties;
+import com.spartaifive.commercepayment.common.response.PublicConfigResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

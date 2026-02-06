@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.security;
+package com.spartaifive.commercepayment.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

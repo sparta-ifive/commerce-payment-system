@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.config;
+package com.spartaifive.commercepayment.common.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

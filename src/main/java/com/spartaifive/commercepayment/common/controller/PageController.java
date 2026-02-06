@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.controller;
+package com.spartaifive.commercepayment.common.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

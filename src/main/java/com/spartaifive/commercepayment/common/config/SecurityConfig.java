@@ -1,6 +1,6 @@
-package com.spartaifive.commercepayment.config;
+package com.spartaifive.commercepayment.common.config;
 
-import com.spartaifive.commercepayment.security.JwtAuthenticationFilter;
+import com.spartaifive.commercepayment.common.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

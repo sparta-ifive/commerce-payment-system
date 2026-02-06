@@ -1,6 +1,6 @@
-package com.spartaifive.commercepayment.dto;
+package com.spartaifive.commercepayment.common.response;
 
-import com.spartaifive.commercepayment.config.ClientApiProperties;
+import com.spartaifive.commercepayment.common.config.ClientApiProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
