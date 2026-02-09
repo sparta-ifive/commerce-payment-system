@@ -11,6 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -33,7 +34,7 @@ public class Order {
     @Min(0)
     // 이렇게 된다면 99,999,999.99 원이 저희 쇼핑몰의 최대 금액이 됩니다.
     @Column(precision = 10, scale = 2, nullable = false) 
-    private Long totalPrice;
+    private BigDecimal totalPrice;
 
     @NotNull
     @Column(nullable = false)
@@ -59,10 +60,11 @@ public class Order {
     // TODO: custom exception 생성
 
     public Order (
-        Long totalPrice,
+        BigDecimal totalPrice,
         Long userId
     ) {
-        if (totalPrice < 0) {
+        // if (totalPrice < 0) {
+        if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException(
                 String.format(
                     "가격을 %s로 설정할려고 합니다. 가격은 음수 일 수 없습니다.",
