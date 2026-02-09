@@ -66,16 +66,16 @@ public class GetOrderResponse {
             Order order,
             List<OrderProduct> orderProducts
     ) {
-        List<ResponseProduct> resposneProducts = new ArrayList<>();
+        List<ResponseProduct> responseProducts = new ArrayList<>();
 
         for (final OrderProduct op : orderProducts) {
-            resposneProducts.add(ResponseProduct.of(op));
+            responseProducts.add(ResponseProduct.of(op));
         }
 
         ResponseOrder responseOrder = ResponseOrder.of(order);
 
         return new GetOrderResponse(
-            resposneProducts,
+            responseProducts,
             responseOrder
         );
     }
