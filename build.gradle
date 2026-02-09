@@ -30,6 +30,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // Jpa drivers
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
     // Configuration Properties
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
