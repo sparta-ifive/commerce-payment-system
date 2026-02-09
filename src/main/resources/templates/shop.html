@@ -129,8 +129,10 @@
                     return false;
                 }
 
-                if (result && Array.isArray(result)) {
-                    products = result;
+                const data = result.data;
+
+                if (data && Array.isArray(data)) {
+                    products = data;
                     showNotification('API에서 상품 로드 성공', 'success');
                     return true;
                 } else {
@@ -177,11 +179,11 @@
                         <div class="price">₩${product.price.toLocaleString()}</div>
                         <div style="margin: 0.5rem 0; font-size: 0.9rem;">${stockStatus}</div>
                         <div class="quantity-control">
-                            <button class="quantity-btn" onclick="updateQuantity('${product.id}', -1)"
+                            <button class="quantity-btn" onclick="updateQuantity('${product.productId}', -1)"
                                 ${product.stock === 0 ? 'disabled' : ''}>-</button>
-                            <input type="number" class="quantity-input" id="qty-${product.id}"
+                            <input type="number" class="quantity-input" id="qty-${product.productId}"
                                 value="0" min="0" max="${product.stock}" readonly>
-                            <button class="quantity-btn" onclick="updateQuantity('${product.id}', 1)"
+                            <button class="quantity-btn" onclick="updateQuantity('${product.productId}', 1)"
                                 ${product.stock === 0 ? 'disabled' : ''}>+</button>
                         </div>
                     </div>
@@ -190,7 +192,9 @@
         }
 
         function updateQuantity(productId, delta) {
-            const product = products.find(p => p.id === productId);
+            console.log(products);
+            const product = products.find(p => p.productId == productId);
+            console.log(product);
             if (!product) return;
 
             const input = document.getElementById(`qty-${productId}`);

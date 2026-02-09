@@ -123,29 +123,39 @@ api:
     # 상품 & 주문 (Product & Order)
     # ========================================
     list-products:
-      url:
-      method:
+      url: /api/products
+      method: GET
       description: 상품 목록 조회
       response:
         body:
-          type: array
-          items:
-            - name: id
-              type: string
-              required: true
-              description: 상품 ID
-            - name: name
-              type: string
-              required: true
-              description: 상품명
-            - name: price
-              type: number
-              required: true
-              description: 가격
-            - name: stock
-              type: number
-              required: true
-              description: 재고 수량
+          fields:
+            - name : success
+              type : boolean
+              required : false
+
+            - name : code
+              type : string
+              required: false
+
+            - name : data
+              type : array
+              required : true
+              items :
+              - name: productId
+                type: number
+                required: true
+              - name: name
+                type: string
+                required: true
+              - name: stock
+                type: number
+                required: true
+              - name: status
+                type: string
+                required: true
+              - name: category
+                type: string
+                required: true
 
     create-order:
       url:
