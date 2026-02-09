@@ -28,7 +28,7 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * 회원가입
+     * 회원가입 기능
      * 정은식
      */
     public SignupResponse signup(SignupRequest request) {
@@ -64,6 +64,10 @@ public class UserService {
         );
     }
 
+    /**
+     * 로그인 기능
+     * 정은식
+     */
     @Transactional
     public String login(LoginRequest request) {
 
@@ -93,6 +97,35 @@ public class UserService {
         userRefreshTokenRepository.save(refreshToken);
 
         // AccessToken 생성 -> 반환
+        return jwtTokenProvider.createAccessToken(user.getEmail());
+    }
+
+    /**
+     * 엑세스토큰 재발급 기능
+     * 정은식
+     */
+    @Transactional
+    public String refreshAccessToken(String refreshTokenValue) {
+
+        // refresh token 조회
+        UserRefreshToken refreshToken = userRefreshTokenRepository
+                .findByRefreshToken(refreshTokenValue)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.")
+                );
+
+        // 로그아웃 여부 확인
+        if (refreshToken.getRevokedAt() != null) {
+            throw new IllegalArgumentException("이미 로그아웃된 토큰입니다.");
+        }
+
+        // 만료 여부 확인
+        if (refreshToken.getExpirationAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("리프레시 토큰이 만료되었습니다.");
+        }
+
+        User user = refreshToken.getUser();
+        // 새 Access Token 발급
         return jwtTokenProvider.createAccessToken(user.getEmail());
     }
 }

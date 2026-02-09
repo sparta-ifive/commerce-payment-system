@@ -2,6 +2,7 @@ package com.spartaifive.commercepayment.domain.user.controller;
 
 import com.spartaifive.commercepayment.common.response.DataResponse;
 import com.spartaifive.commercepayment.domain.user.dto.request.LoginRequest;
+import com.spartaifive.commercepayment.domain.user.dto.request.RefreshRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.SignupRequest;
 import com.spartaifive.commercepayment.domain.user.dto.response.SignupResponse;
 import com.spartaifive.commercepayment.domain.user.service.UserService;
@@ -23,7 +24,7 @@ public class UserController {
     private final UserService userService;
 
     /**
-     * 회원가입
+     * 회원가입 API
      */
     @PostMapping("/signup")
     public ResponseEntity<DataResponse<SignupResponse>> signup(
@@ -38,7 +39,7 @@ public class UserController {
 
 
     /**
-     * 로그인
+     * 로그인 API
      */
     @PostMapping("/login")
     public ResponseEntity<DataResponse> login(
@@ -48,6 +49,21 @@ public class UserController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .body(DataResponse.success("200",null));
+                .body(DataResponse.success(String.valueOf(HttpStatus.OK.value()),null));
     }
+
+    /**
+     * AccessToken 재발급 API
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<DataResponse> refresh(
+            @RequestBody @Valid RefreshRequest request
+    ) {
+        String newAccessToken = userService.refreshAccessToken(request.getRefreshToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + newAccessToken)
+                .body(DataResponse.success(String.valueOf(HttpStatus.OK.value()), null));
+    }
+
 }
