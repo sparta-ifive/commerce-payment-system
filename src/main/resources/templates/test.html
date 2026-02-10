@@ -14,19 +14,7 @@
 </head>
 <body>
     <div style="margin-top:3px">
-        <label>storeId  <input type="text" id="storeId"></label>
-    </div>
-    <div style="margin-top:3px">
-        <label>channelKey  <input type="text" id="channelKey"></label>
-    </div>
-    <div style="margin-top:3px">
-        <label>orderName  <input type="text" id="orderName"></label>
-    </div>
-    <div style="margin-top:3px">
-        <label>totalAmount  <input type="number" min="0" max="2000" id="totalAmount"></label>
-    </div>
-    <div style="margin-top:3px">
-        <label>fullName  <input type="text" id="fullName"></label>
+        <label>fullName <input type="text" id="fullName"></label>
     </div>
     <div style="margin-top:3px">
         <label>phoneNumber  <input type="text" id="phoneNumber"></label>
@@ -43,24 +31,6 @@
     // 결제
     // ===========================
 
-    // let storeId = ""
-    // let orderName = ""
-    // let totalAmount = 0
-    // let channelKey = ""
-    // let fullName = ""
-    // let phoneNumber = ""
-    // let email = ""
-
-    // function readInputs() {
-    //     storeId = document.getElementById('storeId').value;
-    //     orderName = document.getElementById('orderName').value;
-    //     totalAmount = parseInt(document.getElementById('totalAmount').value);
-    //     channelKey = document.getElementById('channelKey').value;
-    //     fullName = document.getElementById('fullName').value;
-    //     phoneNumber = document.getElementById('phoneNumber').value;
-    //     email = document.getElementById('email').value;
-    // }
-    
     let jwt = getToken();
 
     // 결제 버튼을 가져옵니다.
@@ -68,51 +38,101 @@
 
     // 여러분이 결제 버튼을 누릅니다
     button.onclick = async () => {
+        let orderBody = {}
         // 주문 하기
-        let orderRes = await fetch("http://localhost:8080/api/orders", {
-            method : "POST",
-            headers: {
-                'Content-Type' : 'application/json',
-                'Authorization' : `Bearer ${jwt}`
-            },
-            body: JSON.stringify({
-                orderProducts : [
-                    {
-                        productId : 1,
-                        quantity: 2
-                    },
-                    {
-                        productId : 4,
-                        quantity: 2
-                    }
-                ]
+        {
+            let orderRes = await fetch("http://localhost:8080/api/orders", {
+                method : "POST",
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : `Bearer ${jwt}`
+                },
+                body: JSON.stringify({
+                    orderProducts : [
+                        {
+                            productId : 1,
+                            quantity: 2
+                        },
+                        {
+                            productId : 4,
+                            quantity: 2
+                        }
+                    ]
+                })
             })
-        })
 
-        let orderBody = await orderRes.json();
-
-        console.log(orderBody)
+            orderBody = await orderRes.json();
+            console.log(orderBody)
+        }
 
         let orderId = orderBody.data.order.orderId;
         let totalPrice = orderBody.data.order.totalPrice;
+        let orderNumber = orderBody.data.order.orderNumber
 
         console.log(orderId);
         console.log(totalPrice);
 
-        let payAttempt = await fetch("http://localhost:8080/api/payments/attempt", {
-            method : "POST",
-            headers: {
-                'Content-Type' : 'application/json',
-                'Authorization' : `Bearer ${jwt}`
-            },
-            body: JSON.stringify({
-                orderId : orderId,
-                totalPrice : totalPrice
-            })
-        })
+        let payAttemptBody = {}
 
-        let payAttemptBody = await payAttempt.json()
-        console.log(payAttemptBody)
+        // 결제 시도하기
+        {
+            let payAttempt = await fetch("http://localhost:8080/api/payments/attempt", {
+                method : "POST",
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : `Bearer ${jwt}`
+                },
+                body: JSON.stringify({
+                    orderId : orderId,
+                    totalPrice : totalPrice
+                })
+            })
+
+            payAttemptBody = await payAttempt.json()
+            console.log(payAttemptBody)
+        }
+
+        let paymentId = payAttemptBody.data.paymentId
+
+        const config = await getConfig();
+
+        console.log(config);
+
+        let channelKey = config.portone.channelKeys["kg-inicis"]
+        let storeId = config.portone.storeId;
+
+        let fullName = document.getElementById('fullName').value;
+        let phoneNumber = document.getElementById('phoneNumber').value;
+        let email = document.getElementById('email').value;
+
+        // portone 결제 창 띄우기
+        {
+            // 포트원한테 결제하고 싶다고 알려줍니다.
+            let res = await PortOne.requestPayment({
+                storeId : storeId,
+                paymentId : paymentId,
+                orderName : orderNumber,
+                totalAmount : totalPrice,
+                currency: "KRW",
+                payMethod: "CARD",
+                channelKey : channelKey,
+                customer :  {
+                    fullName: fullName,
+                    phoneNumber: phoneNumber,
+                    email: email,
+                }
+            });
+
+            /*
+            {
+                "paymentId": "ORDER_PAYMENT-1-1770735369354",
+                "transactionType": "PAYMENT",
+                "txId": "019c480d-7ea4-c169-849e-e430ef942c08"
+            }
+            */
+
+            console.log(res);
+        }
     }
 </script>
 </body>
