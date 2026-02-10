@@ -81,19 +81,12 @@ public class UserController {
 
 
     @GetMapping("/me")
-    public ResponseEntity<DataResponse<PaymentUserResponse>> getCurrentUser(
+    public ResponseEntity<PaymentUserResponse> getCurrentUser(
             Principal principal
     ) {
         // JWT 인증된 사용자 이메일
         String email = principal.getName();
 
-        PaymentUserResponse response = userService.getPaymentUser(email);
-
-        return ResponseEntity.ok(
-                DataResponse.success(
-                        String.valueOf(HttpStatus.OK.value()),
-                        response
-                )
-        );
+        return ResponseEntity.ok(userService.getPaymentUser(email));
     }
 }
