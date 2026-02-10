@@ -2,6 +2,7 @@ package com.spartaifive.commercepayment.domain.payment.service;
 
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
+import com.spartaifive.commercepayment.domain.payment.dto.PaymentAttemptRequest;
 import com.spartaifive.commercepayment.domain.payment.dto.PaymentAttemptResponse;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
@@ -25,9 +26,9 @@ public class PaymentService {
      * - 저장 후 Response DTO 반환
      */
     @Transactional
-    public PaymentAttemptResponse createAttempt(Long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(
-                () -> new IllegalArgumentException("주문이 존재하지 않습니다 orderId=" + orderId)
+    public PaymentAttemptResponse createAttempt(PaymentAttemptRequest request) {
+        Order order = orderRepository.findById(request.orderId()).orElseThrow(
+                () -> new IllegalArgumentException("주문이 존재하지 않습니다 orderId=" + request.orderId())
         ); // NotFoundException 예외 처리
         BigDecimal expectedAmount = order.getTotalPrice();
 
