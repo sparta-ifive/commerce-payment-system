@@ -3,6 +3,7 @@ package com.spartaifive.commercepayment.domain.user.service;
 import com.spartaifive.commercepayment.common.security.JwtTokenProvider;
 import com.spartaifive.commercepayment.domain.user.dto.request.LoginRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.SignupRequest;
+import com.spartaifive.commercepayment.domain.user.dto.response.PaymentUserResponse;
 import com.spartaifive.commercepayment.domain.user.dto.response.SignupResponse;
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
 import com.spartaifive.commercepayment.domain.user.entity.User;
@@ -147,6 +148,38 @@ public class UserService {
         }
         // 로그아웃 처리
         refreshToken.revoke();
+    }
+
+    /**
+     * 정보 조회 기능
+     * 정은식
+     * 결제를 위한?? 정보조회 PortOne에게 보내는 데이터
+     */
+    public PaymentUserResponse getPaymentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+
+        // AuthController 참고하여 키 만듬
+        String customerUid = "CUST_" + user.getId();
+
+        // 번호 변환 메서드
+        String formattedPhone = formatPhoneNumber(user.getPhone());
+
+        return new PaymentUserResponse(
+                customerUid,
+                user.getEmail(),
+                user.getName(),
+                formattedPhone,
+                user.getTotalPoint().longValue()
+        );
+    }
+
+    // 핸드폰번호 변환 ex) 01000000000 -> 010-0000-0000
+    private String formatPhoneNumber(String phone) {
+        if (phone == null || phone.length() != 11) {
+            return phone;
+        }
+        return phone.replaceAll("(\\d{3})(\\d{4})(\\d{4})", "$1-$2-$3");
     }
 }
 

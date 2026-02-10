@@ -4,6 +4,7 @@ import com.spartaifive.commercepayment.common.response.DataResponse;
 import com.spartaifive.commercepayment.domain.user.dto.request.LoginRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.RefreshRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.SignupRequest;
+import com.spartaifive.commercepayment.domain.user.dto.response.PaymentUserResponse;
 import com.spartaifive.commercepayment.domain.user.dto.response.SignupResponse;
 import com.spartaifive.commercepayment.domain.user.service.UserService;
 import jakarta.validation.Valid;
@@ -11,10 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @RestController
 @RequiredArgsConstructor
@@ -76,6 +76,24 @@ public class UserController {
         userService.logout(request.getRefreshToken());
 
         return ResponseEntity.ok(DataResponse.success(String.valueOf(HttpStatus.OK.value()), null)
+        );
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<DataResponse<PaymentUserResponse>> getCurrentUser(
+            Principal principal
+    ) {
+        // JWT 인증된 사용자 이메일
+        String email = principal.getName();
+
+        PaymentUserResponse response = userService.getPaymentUser(email);
+
+        return ResponseEntity.ok(
+                DataResponse.success(
+                        String.valueOf(HttpStatus.OK.value()),
+                        response
+                )
         );
     }
 }
