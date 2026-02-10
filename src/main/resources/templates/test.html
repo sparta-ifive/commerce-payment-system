@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!-- TEST TEST TEST TEST -->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+
+    <script th:src="@{/js/cookie-util.js}"></script>
+    <script th:src="@{/js/app-config.js}"></script>
+    <script th:src="@{/js/api-handler.js}"></script>
+    <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/portone-sdk.js}"></script>
+</head>
+<body>
+    <div style="margin-top:3px">
+        <label>storeId  <input type="text" id="storeId"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>channelKey  <input type="text" id="channelKey"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>orderName  <input type="text" id="orderName"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>totalAmount  <input type="number" min="0" max="2000" id="totalAmount"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>fullName  <input type="text" id="fullName"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>phoneNumber  <input type="text" id="phoneNumber"></label>
+    </div>
+    <div style="margin-top:3px">
+        <label>email  <input type="text" id="email"></label>
+    </div>
+
+    <div style="margin-top:3px">
+        <button id="결제버튼">결제하기</button>
+    </div>
+<script>
+    // ===========================
+    // 결제
+    // ===========================
+
+    // let storeId = ""
+    // let orderName = ""
+    // let totalAmount = 0
+    // let channelKey = ""
+    // let fullName = ""
+    // let phoneNumber = ""
+    // let email = ""
+
+    // function readInputs() {
+    //     storeId = document.getElementById('storeId').value;
+    //     orderName = document.getElementById('orderName').value;
+    //     totalAmount = parseInt(document.getElementById('totalAmount').value);
+    //     channelKey = document.getElementById('channelKey').value;
+    //     fullName = document.getElementById('fullName').value;
+    //     phoneNumber = document.getElementById('phoneNumber').value;
+    //     email = document.getElementById('email').value;
+    // }
+    
+    let jwt = getToken();
+
+    // 결제 버튼을 가져옵니다.
+    let button = document.getElementById('결제버튼');
+
+    // 여러분이 결제 버튼을 누릅니다
+    button.onclick = async () => {
+        // 주문 하기
+        let orderRes = await fetch("http://localhost:8080/api/orders", {
+            method : "POST",
+            headers: {
+                'Content-Type' : 'application/json',
+                'Authorization' : `Bearer ${jwt}`
+            },
+            body: JSON.stringify({
+                orderProducts : [
+                    {
+                        productId : 1,
+                        quantity: 2
+                    },
+                    {
+                        productId : 4,
+                        quantity: 2
+                    }
+                ]
+            })
+        })
+
+        let orderBody = await orderRes.json();
+
+        console.log(orderBody)
+
+        let orderId = orderBody.data.order.orderId;
+        let totalPrice = orderBody.data.order.totalPrice;
+
+        console.log(orderId);
+        console.log(totalPrice);
+
+        let payAttempt = await fetch("http://localhost:8080/api/payments/attempt", {
+            method : "POST",
+            headers: {
+                'Content-Type' : 'application/json',
+                'Authorization' : `Bearer ${jwt}`
+            },
+            body: JSON.stringify({
+                orderId : orderId,
+                totalPrice : totalPrice
+            })
+        })
+
+        let payAttemptBody = await payAttempt.json()
+        console.log(payAttemptBody)
+    }
+</script>
+</body>
+</html>
