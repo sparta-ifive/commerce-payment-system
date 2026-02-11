@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.order.entity;
 
+import com.spartaifive.commercepayment.domain.user.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -53,15 +54,16 @@ public class Order {
     @Column(nullable = true)
     private LocalDateTime deletedAt;
 
-    // TODO: user 객체가 생성된 이후 many to one 연관관계 생성
-    @Column(nullable = true)
-    private Long userId;
+    // NOTE: 저희는 상품 삭제는 고려하지 않음으로 nullable = false
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "user_id")
+    private User user;
 
     // TODO: custom exception 생성
 
     public Order (
         BigDecimal totalPrice,
-        Long userId
+        User user
     ) {
         // if (totalPrice < 0) {
         if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
@@ -75,7 +77,7 @@ public class Order {
 
         this.totalPrice = totalPrice;
         this.status = OrderStatus.PAYMENT_PENDING;
-        this.userId = userId;
+        this.user = user;
     }
 
     public void setStatusToRefund() {

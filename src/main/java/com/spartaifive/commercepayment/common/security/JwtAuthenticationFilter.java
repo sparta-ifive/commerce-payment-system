@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.common.security;
 
+import com.spartaifive.commercepayment.common.auth.UserDetailsImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,38 +34,53 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
     ) throws ServletException, IOException {
 
-        try {
-            // 1. Request Header에서 JWT 토큰 추출
-            String token = getJwtFromRequest(request);
+        String token = getJwtFromRequest(request);
 
-            // 2. 토큰 유효성 검증
-            if (token != null && jwtTokenProvider.validateToken(token)) {
-                // 3. 토큰에서 사용자 정보 추출
-                String email = jwtTokenProvider.getEmail(token);
-
-                // 4. 인증 객체 생성
-                UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            email,
-                        null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-                    );
-
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // 5. SecurityContext에 인증 정보 설정
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        } catch (Exception e) {
-            logger.error("JWT 인증 실패", e);
-            // TODO: 구현 - 적절한 에러 응답
+        // 토큰이 있는데 유효하지 않으면 401
+        if (token != null && !jwtTokenProvider.validateToken(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("""
+                {
+                  "success": false,
+                  "code": "401",
+                  "message": "로그인이 만료되었습니다."
+                }
+                """);
+            return;
         }
 
+        // 토큰이 있고 유효한 경우만 인증 처리
+        if (token != null) {
+            String email = jwtTokenProvider.getEmail(token);
+            String name = jwtTokenProvider.getName(token);
+            Long userId = jwtTokenProvider.getUserId(token);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            new UserDetailsImpl(
+                                    userId,
+                                    email,
+                                    name,
+                                    null
+                            ),
+                            null,
+                            Collections.singletonList(
+                                    new SimpleGrantedAuthority("ROLE_USER")
+                            )
+                    );
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
+        }
         filterChain.doFilter(request, response);
     }
 

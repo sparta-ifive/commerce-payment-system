@@ -223,7 +223,7 @@
             Object.keys(cart).forEach(productId => {
                 const qty = cart[productId];
                 if (qty > 0) {
-                    const product = products.find(p => p.id === productId);
+                    const product = products.find(p => p.productId == productId);
                     const subtotal = product.price * qty;
                     total += subtotal;
                     html += `
@@ -309,8 +309,10 @@
             // 서버로 전송 (productId, quantity만)
             // 가격 계산과 재고 확인은 서버에서 처리
             const orderData = {
-                items: items
+                orderProducts: items
             };
+
+            console.log(orderData);
 
             try {
                 const result = await makeApiRequest('create-order', {
@@ -322,7 +324,9 @@
                     throw new Error('API 응답 형식이 올바르지 않습니다.');
                 }
 
-                if (result.orderId) {
+                console.log(result);
+
+                if (result.data.order.orderId) {
                     showNotification('주문 생성 완료!', 'success');
                     setTimeout(() => {
                         window.location.href = `/pages/orders?orderId=${result.orderId}`;

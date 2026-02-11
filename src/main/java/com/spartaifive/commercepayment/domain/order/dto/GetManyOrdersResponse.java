@@ -32,7 +32,7 @@ public class GetManyOrdersResponse {
                 order.getStatus(),
                 order.getCreatedAt(),
                 order.getModifiedAt(),
-                order.getUserId()
+                order.getUser().getId()
         );
     }
 }

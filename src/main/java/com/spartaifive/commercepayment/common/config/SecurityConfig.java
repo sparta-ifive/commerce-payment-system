@@ -64,7 +64,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/portone-webhook").permitAll()
 
                     // 4) 인증 API
-                    .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup","/api/auth/refresh").permitAll()
 
                     // 5) 그 외 API는 인증 필요
                     .requestMatchers("/api/**").authenticated()

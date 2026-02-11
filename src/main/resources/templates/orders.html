@@ -261,7 +261,10 @@
             const tbody = document.getElementById('order-list-body');
             tbody.innerHTML = '';
 
-            orders.forEach(order => {
+            console.log(orders);
+
+            orders.data.forEach(order => {
+                console.log(order);
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border)';
 
@@ -271,7 +274,7 @@
                 // 포인트 정보 구성
                 const usedPoints = order.usedPoints || 0;
                 const earnedPoints = order.earnedPoints || 0;
-                const finalAmount = order.finalAmount || order.totalAmount;
+                const finalAmount = order.totalPrice
 
                 let pointsDisplay = '';
                 if (usedPoints > 0 || earnedPoints > 0) {
@@ -291,7 +294,7 @@
                     <td style="padding: 0.75rem; font-weight: 600;">${order.orderNumber}</td>
                     <td style="padding: 0.75rem; font-family: monospace; font-size: 0.875rem; color: var(--text-secondary);">${order.orderId}</td>
                     <td style="padding: 0.75rem;">
-                        <div style="font-weight: 600;">${order.totalAmount.toLocaleString()}원</div>
+                        <div style="font-weight: 600;">${order.totalPrice.toLocaleString()}원</div>
                         ${usedPoints > 0 ? `<div style="font-size: 0.75rem; color: var(--text-secondary);">실결제: ${finalAmount.toLocaleString()}원</div>` : ''}
                     </td>
                     <td style="padding: 0.75rem;">
@@ -303,7 +306,7 @@
                         </span>
                     </td>
                     <td style="padding: 0.75rem; text-align: center;">
-                        ${order.status === 'PENDING' ?
+                        ${order.status === 'PAYMENT_PENDING' ?
                             `<button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="payOrder('${order.orderId}', ${finalAmount})">
                                 💳 결제하기
                             </button>` :
@@ -324,7 +327,7 @@
             }
 
             // 해당 주문 찾기
-            const order = orders.find(o => o.orderId === orderId);
+            const order = orders.data.find(o => o.orderId == orderId);
             if (!order) {
                 showNotification('⚠️ 주문을 찾을 수 없습니다', 'error');
                 return;
