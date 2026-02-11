@@ -14,9 +14,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             Long orderId,
             PaymentStatus paymentStatus
     );
+    Optional<Payment> findTopByMerChantPaymentIdAndPaymentStatusOrderByIdDesc(
+            String paymentId, PaymentStatus paymentStatus
+    );
 
     // default 메서드로 JPA 메서드 감싸기
     default Optional<Payment> findLatestReadyByOrderId(Long orderId) {
         return findTopByOrder_IdAndPaymentStatusOrderByIdDesc(orderId, PaymentStatus.READY);
+    }
+
+    default Optional<Payment> findLatestReadyByMerchantId(String paymentId) {
+        return findTopByMerChantPaymentIdAndPaymentStatusOrderByIdDesc(paymentId, PaymentStatus.READY);
     }
 }

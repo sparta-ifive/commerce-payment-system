@@ -13,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -37,6 +34,14 @@ public class PaymentController {
     public ResponseEntity<DataResponse<ConfirmPaymentResponse>> confirmPayment(
             @AuthenticationPrincipal User user, @Valid @RequestBody ConfirmPaymentRequest request) {
         ConfirmPaymentResponse response = paymentService.confirmPayment(user.getId(), request);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(DataResponse.success(HttpStatus.OK.name(), response));
+    }
+
+    @PostMapping("/{paymentId}/confirm")
+    public ResponseEntity<DataResponse<ConfirmPaymentResponse>> confirmByPaymentId(
+            @AuthenticationPrincipal User user, @PathVariable String paymentId) {
+        ConfirmPaymentResponse response = paymentService.confirmByPaymentId(user.getId(), paymentId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(DataResponse.success(HttpStatus.OK.name(), response));
     }

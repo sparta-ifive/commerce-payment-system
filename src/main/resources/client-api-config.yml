@@ -223,8 +223,8 @@ api:
     # 결제 (Payment)
     # ========================================
     create-payment:
-      url:
-      method:
+      url: /api/payments/attempt
+      method: POST
       description: 결제 시작 요청 (DB에 PENDING 상태로 등록, PortOne SDK 호출 전에 먼저 호출)
       request:
         fields:
@@ -257,8 +257,8 @@ api:
               description: 결제 상태 (PENDING)
 
     confirm-payment:
-      url:
-      method:
+      url: /api/payments/{paymentId}/confirm
+      method: POST
       description: 결제 확정 (PortOne 결제 검증 및 주문 상태 업데이트)
       pathParams:
         - name:
@@ -280,7 +280,7 @@ api:
               description: 변경된 주문 상태
 
     cancel-payment:
-      url:
+      url: /api/orders/{orderId}/refund
       method:
       description: 결제 취소/환불 (PortOne 결제 취소 및 주문 상태 업데이트)
       pathParams:

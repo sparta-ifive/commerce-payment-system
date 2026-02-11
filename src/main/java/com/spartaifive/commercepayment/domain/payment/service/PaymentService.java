@@ -52,6 +52,24 @@ public class PaymentService {
         return PaymentAttemptResponse.from(savedPayment);
     }
 
+    @Transactional
+    public ConfirmPaymentResponse confirmByPaymentId(Long userId, String paymentId) {
+        if (paymentId == null || paymentId.isBlank()) {
+            throw new IllegalArgumentException("paymentId는 필수 입니다");
+        }
+
+        Payment payment = paymentRepository.findLatestReadyByMerchantId(paymentId).orElseThrow(
+                () -> new IllegalArgumentException("결제 대기 상태인 결제가 존재하지 않습니다 paymentId=" + paymentId)
+        );
+
+        if (!payment.getUserId().equals(userId)) {
+            throw new IllegalStateException("결제 소유자가 아닙니다");
+        }
+
+        ConfirmPaymentRequest request = new ConfirmPaymentRequest(paymentId, payment.getOrder().getId());
+        return confirmPayment(userId, request);
+    }
+
     /**
      * 결제 확정(Confirm)
      * - Payment 조회 (merchantPaymentId 또는 paymentId 기준)
@@ -155,6 +173,8 @@ public class PaymentService {
         Payment saved = paymentRepository.save(payment);
         return ConfirmPaymentSuccessResponse.from(saved);
     }
+
+//    @Transactional
 
     // LocalDateTime.parse 불가로 임시 구현
     private LocalDateTime parsePortOneTime(String value) {
