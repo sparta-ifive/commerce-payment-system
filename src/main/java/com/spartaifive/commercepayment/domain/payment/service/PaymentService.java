@@ -52,6 +52,7 @@ public class PaymentService {
         return PaymentAttemptResponse.from(savedPayment);
     }
 
+    // webhook
     @Transactional
     public ConfirmPaymentResponse confirmByPaymentId(Long userId, String paymentId) {
         // webhook 일때는 userId 검증 skip
@@ -175,7 +176,31 @@ public class PaymentService {
         return ConfirmPaymentSuccessResponse.from(saved);
     }
 
-//    @Transactional
+    // 결제 조회
+    @Transactional(readOnly = true)
+    public PaymentDetailResponse getLatestPaymentByOrderId(Long userId, Long orderId) {
+        if (orderId == null) {
+            throw new IllegalArgumentException("orderId는 필수입니다");
+        }
+
+        Order order = orderRepository.findById(orderId).orElseThrow(
+                () -> new IllegalArgumentException("주문이 존재하지 않습니다 orderId=" + orderId)
+        );
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("주문 소유자가 아닙니다");
+        }
+
+        Payment payment = paymentRepository.findLatestByOrderId(orderId).orElseThrow(
+                () -> new IllegalArgumentException("해당 주문의 결제가 존재하지 않습니다 orderId=" + orderId)
+        );
+
+        if (!payment.getUserId().equals(userId)) {
+            throw new IllegalStateException("결제 소유자가 아닙니다");
+        }
+
+        return PaymentDetailResponse.from(payment);
+    }
 
     // LocalDateTime.parse 불가로 임시 구현
     private LocalDateTime parsePortOneTime(String value) {
