@@ -36,4 +36,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     default Optional<Payment> findLatestByOrderId(Long orderId) {
         return findTopByOrder_IdOrderByIdDesc(orderId);
     }
+
+    default Optional<Payment> findLatestPaidByOrderId(Long orderId) {
+        return findTopByOrder_IdAndPaymentStatusOrderByIdDesc(orderId, PaymentStatus.PAID);
+    }
 }
