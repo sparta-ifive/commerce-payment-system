@@ -1,7 +1,10 @@
+//최종본 service
+
 package com.spartaifive.commercepayment.domain.webhookevent.service;
 
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
+//* import com.spartaifive.commercepayment.domain.payment.service.PaymentSupportService;
 import com.spartaifive.commercepayment.domain.webhookevent.dto.WebhookDto;
 import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import com.spartaifive.commercepayment.domain.webhookevent.repository.WebhookRepository;
@@ -13,14 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+// *:  //* 붙어있는 코드들은 추후 살려야 하는 코드들임
+
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class WebhookService {
     private final WebhookRepository webhookRepository;
     private final PortOneClient portOneClient;
-//    private final WebhookValidationService validationService;
-//    private final WebhookDataChangeService changeService;
+//*    private final WebhookValidationService validationService;
+//*   private final WebhookDataChangeService changeService;
+//*   private final PaymentSupportService paymentSupportService;
 
     @Transactional
     public void handleWebhookEvent(WebhookDto.RequestWebhook webhookDto) {
@@ -46,12 +52,17 @@ public class WebhookService {
         //    - 주문 금액과 비교
         try {
             //Todo: 결제가 현재 불가능하기 때문에 주석처리 부분(검증하는 부분) 살리면 오류가 남. 추후 확인 필요
-            // *:  //* 붙어있는 코드들은 추후 살려야 하는 코드들임
             //포트원과 데이터 확인
 //*            PortOnePaymentResponse paymentResponse = portOneClient.getPayment(paymentId);
 //*            validationService.validate(webhookDto, paymentResponse);
-//*           changeService.changeStock(webhookDto);
-//*            validationService.updatePaymentConfirmed();
+//*            changeService.changeStock(webhookDto);
+//*            validationService.updatePaymentConfirmed(paymentId);
+
+//*            if (paymentResponse.isPaid()) {
+//*                if (paymentSupportService.shouldDoPayment(paymentId, true)) {
+//*                    paymentSupportService.processPayment(paymentId);
+//*                }
+//*            }
             savedWebhook.processed();
             log.info(
                     "[PORTONE_WEBHOOK] processed successfully. webhookId={}, paymentId={}",
@@ -59,13 +70,13 @@ public class WebhookService {
                     paymentId
             );
         } catch (Exception e) {
+//*            paymentSupportService.markPaymentAsFail(paymentId);
             savedWebhook.failed();
             log.info(
                     "[PORTONE_WEBHOOK] processed failed. webhookId={}, paymentId={}",
                     webhookId,
                     paymentId
             );
-            throw e;
         }
 
     }

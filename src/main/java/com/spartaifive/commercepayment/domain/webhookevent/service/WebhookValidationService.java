@@ -1,3 +1,4 @@
+//
 //package com.spartaifive.commercepayment.domain.webhookevent.service;
 //
 //import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
@@ -6,7 +7,9 @@
 //import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
 //import com.spartaifive.commercepayment.domain.order.repository.OrderProductRepository;
 //import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
+//import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 //import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
+//import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
 //import com.spartaifive.commercepayment.domain.webhookevent.dto.WebhookDto;
 //import lombok.RequiredArgsConstructor;
 //import lombok.extern.slf4j.Slf4j;
@@ -45,7 +48,7 @@
 //              결제 실패시에는 웹훅 X
 //            * */
 //
-//        Payment payment = paymentRepository.findByPortonePaymentId(paymentId).orElseThrow(() -> new IllegalStateException("해당 결제가 없습니다."));
+//        Payment payment = paymentRepository.findByPaymentId(paymentId).orElseThrow(() -> new IllegalStateException("해당 결제가 없습니다."));
 //
 //        Order order = orderRepository.findById(payment.getOrder().getId()).orElseThrow(() -> new IllegalStateException("해당 주문이 없습니다."));
 //
@@ -57,8 +60,8 @@
 //
 //
 //        //결제 승인 상태라면 주문과 결제 둘다 정상 상태인지
-//
-//        if(payment.getPaymentStatus() == PaymentStatus.PAID) {
+//        //todo: 은총님 성진님 코드 달라서 주석부분은 추후 확인 필요
+///*        if(payment.getPaymentStatus() == PaymentStatus.PAID) {
 //            if(!(order.getStatus() == OrderStatus.COMPLETED)) {
 //                throw new IllegalStateException("주문과 결제의 상태가 일치하지 않습니다.");
 //            }
@@ -68,6 +71,7 @@
 //                throw new IllegalStateException("주문과 결제의 상태가 일치하지 않습니다.");
 //            }
 //        }
+//        */
 //
 //        //총 결제금액 계산
 //        List<OrderProduct> products = orderProductRepository.findAllByOrder_Id(order.getId());
@@ -75,7 +79,7 @@
 //        for (OrderProduct product: products) {
 //            calculatedPrice = calculatedPrice.add(product.getProductPrice());
 //        }
-//        // 결제금액 일치 확인
+// /*       // 결제금액 일치 확인
 //        if (payment.getActualAmount().compareTo(payment.getExpectedAmount()) != 0) {
 //            throw new IllegalStateException("결제 스냅샷과 결제 금액이 일치하지 않습니다.");
 //        }
@@ -90,10 +94,23 @@
 //            throw new IllegalStateException(" 결제 스냅샷과 포트원에서 확인한 결제 금액이 일치하지 않습니다.");
 //        }
 //
+//
+//
+//        if(payment.getPayAmount().compareTo(calculatedPrice) != 0) {
+//            throw new IllegalStateException(String.format(
+//                    "결제 스냅샷 %s 과 서버가 계산한 결제 금액 %s 이 일치하지 않습니다.",
+//                    payment.getPayAmount(),
+//                    calculatedPrice
+//            ));
+//        }
+//        */
+//
 //    }
 //
-//    public void updatePaymentConfirmed() {
+//    public void updatePaymentConfirmed(String paymentId) {
 //
+//        Payment payment = paymentRepository.findByPaymentId(paymentId).orElseThrow(() -> new IllegalStateException("해당 결제가 없습니다."));
+//        payment.updateWebhookConfirmed();
 //    }
 //}
 //
