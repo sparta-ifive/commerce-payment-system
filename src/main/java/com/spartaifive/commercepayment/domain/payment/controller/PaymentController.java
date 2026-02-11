@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.payment.controller;
 
+import com.spartaifive.commercepayment.common.auth.AuthUtil;
 import com.spartaifive.commercepayment.common.response.DataResponse;
 import com.spartaifive.commercepayment.domain.order.service.OrderService;
 import com.spartaifive.commercepayment.domain.payment.dto.ConfirmPaymentRequest;
@@ -24,24 +25,27 @@ public class PaymentController {
 
     @PostMapping("/attempt")
     public ResponseEntity<DataResponse<PaymentAttemptResponse>> createPayment(
-            @AuthenticationPrincipal User user, @Valid @RequestBody PaymentAttemptRequest request) {
-        PaymentAttemptResponse response = paymentService.createPayment(user.getId(), request);
+            @Valid @RequestBody PaymentAttemptRequest request) {
+        Long userId = AuthUtil.getCurrentUserId();
+        PaymentAttemptResponse response = paymentService.createPayment(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(DataResponse.success(HttpStatus.CREATED.name(), response));
     }
 
     @PostMapping("/confirm")
     public ResponseEntity<DataResponse<ConfirmPaymentResponse>> confirmPayment(
-            @AuthenticationPrincipal User user, @Valid @RequestBody ConfirmPaymentRequest request) {
-        ConfirmPaymentResponse response = paymentService.confirmPayment(user.getId(), request);
+            @Valid @RequestBody ConfirmPaymentRequest request) {
+        Long userId = AuthUtil.getCurrentUserId();
+        ConfirmPaymentResponse response = paymentService.confirmPayment(userId, request);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(DataResponse.success(HttpStatus.OK.name(), response));
     }
 
     @PostMapping("/{paymentId}/confirm")
     public ResponseEntity<DataResponse<ConfirmPaymentResponse>> confirmByPaymentId(
-            @AuthenticationPrincipal User user, @PathVariable String paymentId) {
-        ConfirmPaymentResponse response = paymentService.confirmByPaymentId(user.getId(), paymentId);
+            @PathVariable String paymentId) {
+        Long userId = AuthUtil.getCurrentUserId();
+        ConfirmPaymentResponse response = paymentService.confirmByPaymentId(userId, paymentId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(DataResponse.success(HttpStatus.OK.name(), response));
     }

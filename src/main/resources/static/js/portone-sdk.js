@@ -55,7 +55,7 @@ async function openPortOnePayment(paymentData) {
         }
 
         // 서버에서 생성한 paymentId 사용
-        const serverPaymentId = createPaymentResult.paymentId;
+        const serverPaymentId = createPaymentResult.data.merchantPaymentId;
         console.log('서버에서 생성한 결제 ID:', serverPaymentId);
 
         // 2단계: PortOne 결제창 열기

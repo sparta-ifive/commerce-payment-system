@@ -54,11 +54,12 @@ public class PaymentService {
 
     @Transactional
     public ConfirmPaymentResponse confirmByPaymentId(Long userId, String paymentId) {
+        // webhook 일때는 userId 검증 skip
         if (paymentId == null || paymentId.isBlank()) {
             throw new IllegalArgumentException("paymentId는 필수 입니다");
         }
 
-        Payment payment = paymentRepository.findLatestReadyByMerchantId(paymentId).orElseThrow(
+        Payment payment = paymentRepository.findLatestReadyByMerchantPaymentId(paymentId).orElseThrow(
                 () -> new IllegalArgumentException("결제 대기 상태인 결제가 존재하지 않습니다 paymentId=" + paymentId)
         );
 
@@ -106,7 +107,7 @@ public class PaymentService {
 
         // orderId로 최신 결제 대기 상태의 결제 조회 (최신 READY)
         Payment payment = paymentRepository.findLatestReadyByOrderId(request.orderId()).orElseThrow(
-                () -> new IllegalArgumentException("결제대기 상태인 결제가 존재하지 않습니다 orderId=" + request.orderId())
+                () -> new IllegalArgumentException("결제 대기 상태인 결제가 존재하지 않습니다 orderId=" + request.orderId())
         );
 
         if (!payment.getUserId().equals(userId)) {

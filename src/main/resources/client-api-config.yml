@@ -247,13 +247,13 @@ api:
               type: boolean
               required: true
               description: 생성 성공 여부
-            - name: paymentId
+            - name: code
               type: string
               required: true
               description: 생성된 결제 ID (PortOne SDK에 전달할 ID)
-            - name: status
-              type: string
-              required: false
+            - name: data
+              type: object
+              required: true
               description: 결제 상태 (PENDING)
 
     confirm-payment:
@@ -261,7 +261,7 @@ api:
       method: POST
       description: 결제 확정 (PortOne 결제 검증 및 주문 상태 업데이트)
       pathParams:
-        - name:
+        - name: paymentId
           description: 결제 ID
       response:
         body:
@@ -270,13 +270,13 @@ api:
               type: boolean
               required: true
               description: 확정 성공 여부
-            - name: orderId
+            - name: code
               type: string
-              required: false
+              required: true
               description: 주문 ID
-            - name: status
-              type: string
-              required: false
+            - name: data
+              type: object
+              required: true
               description: 변경된 주문 상태
 
     cancel-payment:
