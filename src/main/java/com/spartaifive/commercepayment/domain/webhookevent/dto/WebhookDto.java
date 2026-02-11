@@ -13,7 +13,6 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class WebhookDto {
-
     @Getter
     @AllArgsConstructor
     public static class RequestWebhook{

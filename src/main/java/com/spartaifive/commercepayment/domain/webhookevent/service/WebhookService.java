@@ -2,26 +2,16 @@ package com.spartaifive.commercepayment.domain.webhookevent.service;
 
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
-import com.spartaifive.commercepayment.domain.order.entity.Order;
-import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
-import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
-import com.spartaifive.commercepayment.domain.order.repository.OrderProductRepository;
-import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
-import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
-import com.spartaifive.commercepayment.domain.webhookevent.PortoneWebhookPayload;
 import com.spartaifive.commercepayment.domain.webhookevent.dto.WebhookDto;
 import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import com.spartaifive.commercepayment.domain.webhookevent.repository.WebhookRepository;
-import io.portone.sdk.server.payment.Payment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -29,7 +19,8 @@ import java.util.List;
 public class WebhookService {
     private final WebhookRepository webhookRepository;
     private final PortOneClient portOneClient;
-    private final WebhookSupportService supportService;
+//    private final WebhookValidationService validationService;
+//    private final WebhookDataChangeService changeService;
 
     @Transactional
     public void handleWebhookEvent(WebhookDto.RequestWebhook webhookDto) {
@@ -50,15 +41,23 @@ public class WebhookService {
         Webhook webhook = new Webhook(webhookId, paymentId, receivedAt);
         Webhook savedWebhook = webhookRepository.save(webhook);
 
-        // 2) paymentId로 PortOne 결제 조회(SSOT)
+        // 2) paymentId로 PortOne 결제 조회
         //    - status / amount 확인
         //    - 주문 금액과 비교
-        // 포트원에서 paymentId로 조회한 결제정보를 담은 dto
         try {
+            //Todo: 결제가 현재 불가능하기 때문에 주석처리 부분(검증하는 부분) 살리면 오류가 남. 추후 확인 필요
+            // *:  //* 붙어있는 코드들은 추후 살려야 하는 코드들임
             //포트원과 데이터 확인
-            PortOnePaymentResponse paymentResponse = portOneClient.getPayment(paymentId);
-            supportService.validate(webhookDto, paymentResponse);
+//*            PortOnePaymentResponse paymentResponse = portOneClient.getPayment(paymentId);
+//*            validationService.validate(webhookDto, paymentResponse);
+//*           changeService.changeStock(webhookDto);
+//*            validationService.updatePaymentConfirmed();
             savedWebhook.processed();
+            log.info(
+                    "[PORTONE_WEBHOOK] processed successfully. webhookId={}, paymentId={}",
+                    webhookId,
+                    paymentId
+            );
         } catch (Exception e) {
             savedWebhook.failed();
             log.info(
