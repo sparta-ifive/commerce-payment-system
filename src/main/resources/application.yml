@@ -28,6 +28,8 @@ portone:
   api:
     base-url: https://api.portone.io
     secret: ${PORTONE_API_SECRET:your-api-secret}
+  webhook:
+    secret: ${PORTONE_API_SECRET:your-api-secret}
   store:
     id: ${PORTONE_STORE_ID:your-store-id}
   channel:

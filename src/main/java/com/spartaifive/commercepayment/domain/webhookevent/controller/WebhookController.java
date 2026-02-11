@@ -1,8 +1,8 @@
 package com.spartaifive.commercepayment.domain.webhookevent.controller;
 
-import com.spartaifive.commercepayment.domain.webhookevent.PortOneWebhookVerifier;
-import com.spartaifive.commercepayment.domain.webhookevent.PortoneWebhookPayload;
-import com.spartaifive.commercepayment.domain.webhookevent.service.WebhookEventService;
+import com.spartaifive.commercepayment.domain.webhookevent.PortOneSdkWebhookVerifier;
+import com.spartaifive.commercepayment.domain.webhookevent.dto.WebhookDto;
+import com.spartaifive.commercepayment.domain.webhookevent.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -11,67 +11,65 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-import tools.jackson.databind.ObjectMapper;
 
-import java.nio.charset.StandardCharsets;
+
+import io.portone.sdk.server.errors.WebhookVerificationException;
+import io.portone.sdk.server.webhook.Webhook;
+import io.portone.sdk.server.webhook.WebhookTransaction;
+import io.portone.sdk.server.webhook.WebhookTransactionData;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @RestController
 @Slf4j
 @RequiredArgsConstructor
 public class WebhookController {
 
-    private final PortOneWebhookVerifier verifier;
-    private final ObjectMapper objectMapper;
-    private final WebhookEventService webhookEventService;
+    private final PortOneSdkWebhookVerifier verifier;
+    private final WebhookService webhookService;
 
     @PostMapping(value = "/portone-webhook", consumes = "application/json")
     public ResponseEntity<Void> handlePortoneWebhook(
 
-            // 1. 검증용 원문
-            @RequestBody byte[] rawBody,
+            // 1. 검증용 원문 (SDK verify()는 String을 받으므로 String으로 수신)
+            @RequestBody String rawBody,
 
             // 2. PortOne V2 필수 헤더
             @RequestHeader("webhook-id") String webhookId,
             @RequestHeader("webhook-timestamp") String webhookTimestamp,
             @RequestHeader("webhook-signature") String webhookSignature
     ) {
-        // (선택) 원문 로그
-        log.info(
-                "[PORTONE_WEBHOOK] id={} ts={} body={}",
-                webhookId,
-                webhookTimestamp,
-                new String(rawBody, StandardCharsets.UTF_8)
-        );
+        log.info("[PORTONE_WEBHOOK] id={} ts={}", webhookId, webhookTimestamp);
 
-        // 3. 시그니처 검증 (rawBody 기준)
-        boolean verified = verifier.verify(
-                rawBody,
-                webhookId,
-                webhookTimestamp,
-                webhookSignature
-        );
-
-        if (!verified) {
-            log.warn("[PORTONE_WEBHOOK] signature verification failed");
+        // 3. SDK를 이용한 시그니처 검증 + 역직렬화
+        Webhook webhook;
+        try {
+            webhook = verifier.verify(rawBody, webhookId, webhookSignature, webhookTimestamp);
+        } catch (WebhookVerificationException e) {
+            log.warn("[PORTONE_WEBHOOK] signature verification failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // 4. 검증 통과 후 DTO 변환
-        PortoneWebhookPayload payload;
-        try {
-            payload = objectMapper.readValue(rawBody, PortoneWebhookPayload.class);
-        } catch (Exception e) {
-            log.error("[PORTONE_WEBHOOK] payload parse failed", e);
-            return ResponseEntity.badRequest().build();
-        }
+        // 4. 검증 통과 – 웹훅 타입별 분기 처리
+        if (webhook instanceof WebhookTransaction transaction) {
+            WebhookTransactionData data = transaction.getData();
+            log.info(
+                    "[PORTONE_WEBHOOK] VERIFIED Transaction paymentId={} transactionId={} storeId={} timestamp={}",
+                    data.getPaymentId(),
+                    data.getTransactionId(),
+                    data.getStoreId(),
+                    transaction.getTimestamp()
+            );
 
-        // 5. 이후부터는 “신뢰 가능한 데이터”
-        log.info(
-                "[PORTONE_WEBHOOK] VERIFIED paymentId={} status={}",
-                payload.getPaymentId(),
-                payload.getStatus()
-        );
-        webhookEventService.handleWebhookEvent(webhookId, payload);
+            //5. 검증 통과한 웹훅을 dto로 변환하여 서비스에 넘기기
+            LocalDateTime receivedAt = LocalDateTime.ofInstant(transaction.getTimestamp(), ZoneId.systemDefault());
+            WebhookDto.RequestWebhook webhookDto = new WebhookDto.RequestWebhook(webhookId, data.getPaymentId(),receivedAt);
+            webhookService.handleWebhookEvent(webhookDto);
+
+        } else {
+            log.info("[PORTONE_WEBHOOK] VERIFIED non-transaction webhook: {}", webhook.getClass().getSimpleName());
+        }
 
         return ResponseEntity.ok().build();
     }

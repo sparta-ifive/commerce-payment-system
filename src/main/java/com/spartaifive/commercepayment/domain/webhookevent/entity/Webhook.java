@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "webhook_events")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-public class WebhookEvent {
+public class Webhook {
 
     //우리 db에서 관리할 키
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,27 +28,32 @@ public class WebhookEvent {
     @Column(nullable = false)
     private EventStatus status;
 
+    @Column(nullable = false)
+    private String paymentId;
+
     @CreatedDate
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime receivedAt;
 
-    private LocalDateTime processedAt;
+    private LocalDateTime completedAt;
 
 
 
-    public WebhookEvent(String webhookId) {
+    public Webhook(String webhookId, String paymentId, LocalDateTime receivedAt) {
         this.webhookId = webhookId;
+        this.paymentId = paymentId;
         this.status = EventStatus.RECEIVED;
+        this.receivedAt = receivedAt;
     }
 
     public void processed() {
         this.status = EventStatus.PROCESSED;
-        this.processedAt = LocalDateTime.now();
+        this.completedAt = LocalDateTime.now();
     }
 
     public void failed() {
         this.status = EventStatus.FAILED;
-        this.processedAt = LocalDateTime.now();
+        this.completedAt = LocalDateTime.now();
     }
 
 
