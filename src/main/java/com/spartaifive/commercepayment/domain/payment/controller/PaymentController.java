@@ -2,6 +2,8 @@ package com.spartaifive.commercepayment.domain.payment.controller;
 
 import com.spartaifive.commercepayment.domain.payment.dto.AttemptPaymentRequest;
 import com.spartaifive.commercepayment.domain.payment.dto.AttemptPaymentResponse;
+import com.spartaifive.commercepayment.domain.payment.dto.ConfirmPaymentRequest;
+import com.spartaifive.commercepayment.domain.payment.dto.ConfirmPaymentResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +26,18 @@ public class PaymentController {
             @RequestBody AttemptPaymentRequest req
     ) {
         AttemptPaymentResponse res = paymentService.attemptPayment(req);
+
+        // TODO: 무슨 코드를 넣을지 잘 모르겠네요
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(DataResponse.success("SUCCESS", res));
+    }
+
+    @PostMapping("/api/payments/confirm")
+    public ResponseEntity<DataResponse<ConfirmPaymentResponse>> confirmPayment(
+            @RequestBody ConfirmPaymentRequest req
+    ) {
+        ConfirmPaymentResponse res = paymentService.confirmPayment(req);
 
         // TODO: 무슨 코드를 넣을지 잘 모르겠네요
         return ResponseEntity

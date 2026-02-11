@@ -2,6 +2,7 @@ package com.spartaifive.commercepayment.domain.webhookevent.service;
 
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
+import com.spartaifive.commercepayment.domain.payment.service.PaymentSupportService;
 import com.spartaifive.commercepayment.domain.webhookevent.PortoneWebhookPayload;
 import com.spartaifive.commercepayment.domain.webhookevent.entity.WebhookEvent;
 import com.spartaifive.commercepayment.domain.webhookevent.repository.WebhookEventRepository;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WebhookEventService {
     public final WebhookEventRepository webhookEventRepository;
     public final PortOneClient portOneClient;
+    private final PaymentSupportService paymentSupportService;
 
     @Transactional
     public void handleWebhookEvent(String webhookId, PortoneWebhookPayload payload) {
@@ -44,6 +46,12 @@ public class WebhookEventService {
             //     throw new IllegalStateException("결제 금액 불일치");
             // }
 
+            if (paymentResponse.isPaid()) {
+                if (paymentSupportService.shouldDoPayment(payload.getPaymentId(), true)) {
+                    paymentSupportService.processPayment(payload.getPaymentId());
+                }
+            }
+
         // 3) 결제/주문 상태 반영(트랜잭션)
         //    - 결제 상태 전이 검증
         //      - 막아야 하는 전이 체크 (예: REFUNDED → PAID : 이미 환불된 결제)
@@ -59,6 +67,7 @@ public class WebhookEventService {
                 payload.getPaymentId()
         );
         } catch(Exception e) {
+            paymentSupportService.markPaymentAsFail(payload.getPaymentId());
             // 이 부분 작성하기 대충 작성하였음
             webhookEvent.failed();
             log.info(
@@ -66,8 +75,6 @@ public class WebhookEventService {
                     webhookId,
                     payload.getPaymentId()
             );
-            throw e;
         }
-
     }
 }

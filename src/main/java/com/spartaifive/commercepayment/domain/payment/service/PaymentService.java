@@ -1,15 +1,25 @@
 package com.spartaifive.commercepayment.domain.payment.service;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 
 import com.spartaifive.commercepayment.domain.order.entity.Order;
+import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
+import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
+import com.spartaifive.commercepayment.domain.order.repository.OrderProductRepository;
 import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
-import com.spartaifive.commercepayment.domain.payment.dto.AttemptPaymentRequest;
-import com.spartaifive.commercepayment.domain.payment.dto.AttemptPaymentResponse;
+import com.spartaifive.commercepayment.domain.payment.dto.*;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
+import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
+import com.spartaifive.commercepayment.domain.product.entity.Product;
+import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
+import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -17,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final PaymentSupportService paymentSupportService;
 
     @Transactional
     public AttemptPaymentResponse attemptPayment(AttemptPaymentRequest req) {
@@ -27,7 +38,7 @@ public class PaymentService {
         // paymentId 생성
         {
             // TODO: user id 도 넣기
-            paymentId = 
+            paymentId =
                 "ORDER_PAYMENT-" +
                 req.getOrderId() + "-" +
                 Instant.now().toEpochMilli();
@@ -43,5 +54,17 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         return AttemptPaymentResponse.of(payment);
+    }
+
+    @Transactional
+    public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest req) {
+        if (paymentSupportService.shouldDoPayment(req.getPortOnePaymentId(), false)) {
+            paymentSupportService.processPayment(req.getPortOnePaymentId());
+        }
+
+        return new ConfirmPaymentResponse(
+                req.getPaymentId(), 
+                req.getPortOnePaymentId(),
+                req.getOrderId());
     }
 }

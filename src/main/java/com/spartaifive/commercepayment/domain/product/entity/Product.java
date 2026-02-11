@@ -78,4 +78,20 @@ public class Product {
         this.category = category;
         this.description = description;
     }
+
+    public Long decreaseStock(Long amount) {
+        Long newStock = this.stock - amount;
+
+        if (newStock < 0) {
+            throw new RuntimeException(String.format("재고를 %s에서 %s 음수로 변경 시도", this.stock, newStock));
+        }
+
+        this.stock = newStock;
+
+        if (this.stock <= 0) {
+            this.status = ProductStatus.OUT_OF_STOCK;
+        }
+
+        return this.stock;
+    }
 }

@@ -92,7 +92,8 @@
             console.log(payAttemptBody)
         }
 
-        let paymentId = payAttemptBody.data.paymentId
+        let paymentId = payAttemptBody.data.id;
+        let portOnePaymentId = payAttemptBody.data.paymentId
 
         const config = await getConfig();
 
@@ -105,12 +106,14 @@
         let phoneNumber = document.getElementById('phoneNumber').value;
         let email = document.getElementById('email').value;
 
+        let portOneBody = {}
+
         // portone 결제 창 띄우기
         {
             // 포트원한테 결제하고 싶다고 알려줍니다.
-            let res = await PortOne.requestPayment({
+            portOneBody = await PortOne.requestPayment({
                 storeId : storeId,
-                paymentId : paymentId,
+                paymentId : portOnePaymentId,
                 orderName : orderNumber,
                 totalAmount : totalPrice,
                 currency: "KRW",
@@ -131,7 +134,25 @@
             }
             */
 
-            console.log(res);
+            console.log(portOneBody);
+        }
+
+        {
+            let confirm = await fetch("http://localhost:8080/api/payments/confirm", {
+                method : "POST",
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : `Bearer ${jwt}`
+                },
+                body: JSON.stringify({
+                    paymentId: paymentId,
+                    portOnePaymentId : portOnePaymentId,
+                    orderId: orderId
+                })
+            })
+
+            let confirmBody = await confirm.json()
+            console.log(confirmBody)
         }
     }
 </script>

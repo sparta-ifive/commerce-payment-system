@@ -54,6 +54,14 @@ public class Payment {
     @Column(precision = 10, scale = 2, nullable = false) 
     private BigDecimal payAmount;
 
+    @NotNull
+    @Column(nullable = false)
+    boolean webhookConfirmed;
+
+    @NotNull
+    @Column(nullable = false)
+    boolean clientConfirmed;
+
     @Column(nullable = true)
     private LocalDateTime paidAt;
 
@@ -65,5 +73,11 @@ public class Payment {
         this.paymentId = paymentId;
         this.status = PaymentStatus.READY;
         this.payAmount = payAmount;
+        this.webhookConfirmed = false;
+        this.clientConfirmed = false;
+    }
+
+    public void updateStatus(PaymentStatus status) {
+        this.status = status;
     }
 }
