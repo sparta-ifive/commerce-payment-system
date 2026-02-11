@@ -78,4 +78,21 @@ public class Product {
         this.category = category;
         this.description = description;
     }
+
+    public void decreaseStock(Long quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("차감 수량은 0보다 커야합니다");
+        }
+        if (this.stock < quantity) {
+            throw new IllegalStateException("재고가 부족합니다 stock=" + this.stock + ", quantity=" + quantity);
+        }
+        this.stock -= quantity;
+    }
+
+    public void increaseStock(Long quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("증가 수량은 0보다 커야합니다");
+        }
+        this.stock += quantity;
+    }
 }
