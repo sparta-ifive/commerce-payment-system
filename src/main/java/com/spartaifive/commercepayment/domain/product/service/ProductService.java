@@ -3,6 +3,7 @@ package com.spartaifive.commercepayment.domain.product.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,8 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<GetManyProductsResponse> getManyProducts() {
-        List<Product> products = productRepository.findAll();
+        List<Product> products = productRepository.findAllByStatusIn(
+                List.of(ProductStatus.ON_SALE, ProductStatus.OUT_OF_STOCK));
 
         List<GetManyProductsResponse> dtos = new ArrayList<>();
 

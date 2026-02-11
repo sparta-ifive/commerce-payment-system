@@ -11,6 +11,8 @@ import com.spartaifive.commercepayment.domain.order.util.OrderSupport;
 import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
+import com.spartaifive.commercepayment.domain.user.entity.User;
+import com.spartaifive.commercepayment.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -28,6 +30,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final OrderProductRepository orderProductRepository;
+    private final UserRepository userRepository;
 
     // TODO: 현재 선택한 상품에 대해서 조회 할 때 
     // 예를들어 고객이 포카칩, 사과 이렇게 샀을 때
@@ -35,7 +38,7 @@ public class OrderService {
     // 이게 좋은건지는 모르겠습니다.
 
     @Transactional
-    public GetOrderResponse addOrder(AddOrderRequest req) {
+    public GetOrderResponse addOrder(AddOrderRequest req, Long userId) {
         req = OrderSupport.NormalizeAddOrderRequest(req);
 
         Map<Long, AddOrderRequest.RequestProduct> productIdToReq = new HashMap<>();
@@ -87,9 +90,10 @@ public class OrderService {
             }
         }
 
+        User userRef = userRepository.getReferenceById(userId);
+
         // 주문 객체 생성
-        // TODO: 현재 저희에게는 유저의 개념이 없기 때문에 일단은 0을 저장합니다.
-        Order order = new Order(total, 0L);
+        Order order = new Order(total, userRef);
 
         // 주문 상품 생성
         List<OrderProduct> orderProducts = new ArrayList<>();
@@ -114,10 +118,15 @@ public class OrderService {
     }
 
 
-    public GetOrderResponse getOrder(Long orderId) {
+    @Transactional(readOnly = true)
+    public GetOrderResponse getOrder(Long orderId, Long userId) {
         // TODO: custom exception 생성
         Order order = orderRepository.findById(orderId).orElseThrow(()->
                 new RuntimeException(String.format("이 %s id의 주문을 찾을 수 없습니다.", orderId)));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("주문은 단건 조회는 본인의 주문만 할 수 있습니다.");
+        }
 
         List<OrderProduct> orderProducts = orderProductRepository.findAllByOrder_Id(order.getId());
 
@@ -126,8 +135,9 @@ public class OrderService {
                 orderProducts);
     }
 
-    public List<GetManyOrdersResponse> getManyOrders() {
-        List<Order> orders = orderRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<GetManyOrdersResponse> getManyOrders(Long userId) {
+        List<Order> orders = orderRepository.findAllByUserId(userId);
 
         List<GetManyOrdersResponse> dtos = new ArrayList<>();
 
