@@ -13,11 +13,13 @@ import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
 import com.spartaifive.commercepayment.domain.payment.dto.*;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
+import com.spartaifive.commercepayment.domain.payment.exception.PaymentConfirmFailException;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
 import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,15 +58,21 @@ public class PaymentService {
         return AttemptPaymentResponse.of(payment);
     }
 
-    @Transactional
+    // 나중에 글로벌
+    @Transactional(noRollbackFor = PaymentConfirmFailException.class)
     public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest req) {
-        if (paymentSupportService.shouldDoPayment(req.getPortOnePaymentId(), false)) {
-            paymentSupportService.processPayment(req.getPortOnePaymentId());
+        try {
+            if (paymentSupportService.shouldDoPayment(req.getPortOnePaymentId(), false)) {
+                paymentSupportService.processPayment(req.getPortOnePaymentId());
+            }
+            return new ConfirmPaymentResponse(
+                    req.getPaymentId(),
+                    req.getPortOnePaymentId(),
+                    req.getOrderId());
+        } catch(Exception e) {
+            paymentSupportService.markPaymentAsFail(req.getPortOnePaymentId());
+            throw new PaymentConfirmFailException("PAYMENT_FAIL", e, HttpStatus.INTERNAL_SERVER_ERROR);
+            // TODO: 환불 요청 하기
         }
-
-        return new ConfirmPaymentResponse(
-                req.getPaymentId(), 
-                req.getPortOnePaymentId(),
-                req.getOrderId());
     }
 }
