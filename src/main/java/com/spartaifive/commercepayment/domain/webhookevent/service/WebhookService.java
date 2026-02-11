@@ -57,7 +57,8 @@ public class WebhookService {
         try {
             //포트원과 데이터 확인
             PortOnePaymentResponse paymentResponse = portOneClient.getPayment(paymentId);
-            supportService.validate(webhookDto);
+            supportService.validate(webhookDto, paymentResponse);
+            savedWebhook.processed();
         } catch (Exception e) {
             savedWebhook.failed();
             log.info(

@@ -31,6 +31,7 @@ public class WebhookSupportService {
     @Transactional
     public void validate(WebhookDto.RequestWebhook webhookDto) {
 
+// 서포트서비스
         String webhookId = webhookDto.getWebhookId();
         String paymentId = webhookDto.getPaymentId();
         LocalDateTime receivedAt = webhookDto.getReceivedAt();
@@ -45,14 +46,20 @@ public class WebhookSupportService {
               관리자 콘솔에서 결제 취소되었을 때 - (status : cancelled)
               결제 실패시에는 웹훅 X
             * */
-        Payment payment = paymentRepository.findByPaymentId(paymentId).orElseThrow(() -> new IllegalStateException("해당 결제가 없습니다."));
-        Order order = orderRepository.findByPaymentPkId(payment.getOrder().getId()).orElseThrow(() -> new IllegalStateException("해당 주문이 없습니다."));
 
-        //환불 상태라면 환불에 데이터 저장 잘 되었는지
-        if (payment.getPaymentStatus() == PaymentStatus.REFUNDED) {
+        Payment payment = paymentRepository.findByPortonePaymentId(paymentId).orElseThrow(() -> new IllegalStateException("해당 결제가 없습니다."));
+
+        Order order = orderRepository.findById(payment.getOrder().getId()).orElseThrow(() -> new IllegalStateException("해당 주문이 없습니다."));
+
+        //Todo: 환불 구현 후 확인
+        // 환불 상태라면 환불에 데이터 저장 잘 되었는지
+/*        if (payment.getPaymentStatus() == PaymentStatus.REFUNDED) {
             Refund refund = refundRepository.findByPaymentPkId(payment.getId()).orElseThrow(() -> new IllegalStateException("환불 이력이 없습니다."));
         }
+        */
+
         //결제 승인 상태라면 주문과 결제 둘다 정상 상태인지
+
         if(payment.getPaymentStatus() == PaymentStatus.PAID) {
             if(!(order.getStatus() == OrderStatus.COMPLETED)) {
                 throw new IllegalStateException("주문과 결제의 상태가 일치하지 않습니다.");
@@ -67,12 +74,12 @@ public class WebhookSupportService {
         //총 결제금액 계산
         List<OrderProduct> products = orderProductRepository.findAllByOrder_Id(order.getId());
         BigDecimal calculatedPrice = BigDecimal.valueOf(0);
-        for (OrderProduct product : products) {
+        for (OrderProduct product: products) {
             calculatedPrice = calculatedPrice.add(product.getProductPrice());
         }
         // 결제금액 일치 확인
         if (payment.getActualAmount().compareTo(payment.getExpectedAmount()) != 0) {
-            throw new IllegalStateException("결제 스냅샷과 포트원에서 조회한 결제 금액이 일치하지 않습니다.");
+            throw new IllegalStateException("결제 스냅샷과 결제 금액이 일치하지 않습니다.");
         }
 
         if (payment.getActualAmount().compareTo(calculatedPrice) != 0) {
@@ -81,11 +88,14 @@ public class WebhookSupportService {
         if (payment.getActualAmount().compareTo(order.getTotalPrice()) != 0) {
             throw new IllegalStateException("결제 스냅샷과 주문에서 확인한 결제 금액이 일치하지 않습니다.");
         }
-        savedWebhook.processed();
+        if(payment.getActualAmount().compareTo(paymentResponse.amount().total()) != 0) {
+            throw new IllegalStateException(" 결제 스냅샷과 포트원에서 확인한 결제 금액이 일치하지 않습니다.");
+        }
         log.info(
                 "[PORTONE_WEBHOOK] processed successfully. webhookId={}, paymentId={}",
                 webhookId,
                 paymentId
         );
+
     }
 }
