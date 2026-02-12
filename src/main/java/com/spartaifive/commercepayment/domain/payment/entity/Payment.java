@@ -14,7 +14,14 @@ import java.util.Objects;
 @Table(name = "payments",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_payments_portone_payment_id",
-                        columnNames = "portone_payment_id")
+                        columnNames = "portone_payment_id"),
+                @UniqueConstraint(name = "uk_payments_merchant_payment_id",
+                        columnNames = "merchant_payment_id")
+        },
+        indexes = {
+        @Index(name = "ix_payments_order_id", columnList = "order_id"),
+        @Index(name = "ix_payments_user_id", columnList = "user_id"),
+        @Index(name = "ix_payments_status", columnList = "status")
         }
 )
 @NoArgsConstructor
@@ -50,12 +57,12 @@ public class Payment {
     /**
      * 서버가 예상하는 결제 금액 (스냅샷)
      */
-    @Column(name = "expected_amount", nullable = false, precision = 15, scale = 0)
+    @Column(name = "expected_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal expectedAmount;
     /**
      * PortOne에서 조회한 결제 승인 금액
      */
-    @Column(name = "actual_amount", precision = 15, scale = 0)
+    @Column(name = "actual_amount", precision = 15, scale = 2)
     private BigDecimal actualAmount;
 
     @Column(name = "attempted_at")
@@ -73,6 +80,9 @@ public class Payment {
     @Column(name = "refunded_at")
     private LocalDateTime refundedAt;
 
+    @Column(name = "refund_reason")
+    private String refundReason;
+
     public static Payment createAttempt(
             Long userId, Order order, BigDecimal expectedAmount, String merchantPaymentId) {
         if (userId == null) {
@@ -85,7 +95,7 @@ public class Payment {
             throw new IllegalArgumentException("주문 금액(예상 결제 금액)은 0보다 커야합니다");
         }
         if (merchantPaymentId == null) {
-            throw new IllegalArgumentException("merchantId가 존재하지 않습니다");
+            throw new IllegalArgumentException("merchantPaymentId가 존재하지 않습니다");
         }
         Payment payment = new Payment();
         payment.userId = userId;
@@ -136,10 +146,11 @@ public class Payment {
         return this;
     }
 
-    public Payment refund() {
+    public Payment refund(String reason) {
         validatePaymentStatus(PaymentStatus.REFUNDED);
 
-        this.paymentStatus =  PaymentStatus.REFUNDED;
+        this.refundReason = reason;
+        this.paymentStatus = PaymentStatus.REFUNDED;
         this.refundedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         return this;

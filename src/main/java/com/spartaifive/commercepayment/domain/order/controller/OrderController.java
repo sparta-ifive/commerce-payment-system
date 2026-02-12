@@ -7,9 +7,7 @@ import com.spartaifive.commercepayment.domain.order.dto.GetManyOrdersResponse;
 import com.spartaifive.commercepayment.domain.order.dto.GetOrderResponse;
 import com.spartaifive.commercepayment.domain.order.service.OrderService;
 
-import com.spartaifive.commercepayment.domain.payment.dto.PaymentDetailResponse;
-import com.spartaifive.commercepayment.domain.payment.dto.RefundRequest;
-import com.spartaifive.commercepayment.domain.payment.dto.RefundResponse;
+import com.spartaifive.commercepayment.domain.payment.dto.response.PaymentDetailResponse;
 import com.spartaifive.commercepayment.domain.payment.service.PaymentService;
 import jakarta.validation.Valid;
 
@@ -75,17 +73,6 @@ public class OrderController {
     ) {
         Long userId = AuthUtil.getCurrentUserId();
         PaymentDetailResponse response = paymentService.getLatestPaymentByOrderId(userId, orderId);
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(DataResponse.success(HttpStatus.OK.name(), response));
-    }
-
-    @PostMapping("/api/orders/{orderId}/refund")
-    public ResponseEntity<DataResponse<RefundResponse>> refundOrder(
-            @PathVariable Long orderId, @Valid @RequestBody RefundRequest request) {
-        Long userId = AuthUtil.getCurrentUserId();
-        RefundResponse response = paymentService.refundOrder(userId, orderId, request);
 
         return ResponseEntity
                 .status(HttpStatus.OK)

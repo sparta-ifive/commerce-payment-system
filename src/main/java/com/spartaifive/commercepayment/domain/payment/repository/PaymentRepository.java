@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
-    // portonePaymentId로 결제 조회
-    Optional<Payment> findByPortonePaymentId(String portonePaymentId);
+    // merchantPaymentId로 결제 조회
+    Optional<Payment> findByMerchantPaymentId(String merchantPaymentId);
     List<Payment> findAllByOrder_id(Long orderId);
     // orderId로 결제 목록에서 가장 마지막에 저장된 status가 ready인 결제 조회
     Optional<Payment> findTopByOrder_IdAndPaymentStatusOrderByIdDesc(

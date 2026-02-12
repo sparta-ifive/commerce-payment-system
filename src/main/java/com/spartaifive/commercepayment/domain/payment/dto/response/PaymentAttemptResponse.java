@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.domain.payment.dto;
+package com.spartaifive.commercepayment.domain.payment.dto.response;
 
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 

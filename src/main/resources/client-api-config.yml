@@ -280,17 +280,17 @@ api:
               description: 변경된 주문 상태
 
     cancel-payment:
-      url: /api/orders/{orderId}/refund
-      method:
+      url: /api/payments/{paymentId}/refund
+      method: POST
       description: 결제 취소/환불 (PortOne 결제 취소 및 주문 상태 업데이트)
       pathParams:
-        - name:
+        - name: paymentId
           description: 결제 ID
       request:
         fields:
-          - name: reason
+          - name: refundReason
             type: string
-            required: false
+            required: true
             description: 취소 사유
       response:
         body:

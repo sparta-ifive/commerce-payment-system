@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.domain.payment.dto;
+package com.spartaifive.commercepayment.domain.payment.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 

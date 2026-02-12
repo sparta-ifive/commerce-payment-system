@@ -159,7 +159,7 @@ async function openPortOnePaymentWithPoints(paymentData) {
         }
 
         // 서버에서 생성한 paymentId 사용
-        const serverPaymentId = createPaymentResult.paymentId;
+        const serverPaymentId = createPaymentResult.data.merchantPaymentId;
         console.log('서버에서 생성한 결제 ID:', serverPaymentId);
 
         // 포인트 차감 후 최종 금액 계산
