@@ -1,5 +1,7 @@
 package com.spartaifive.commercepayment.domain.order.entity;
 
+import com.spartaifive.commercepayment.domain.order.customexception.InvalidOrderPriceException;
+import com.spartaifive.commercepayment.domain.order.customexception.InvalidOrderStatusException;
 import com.spartaifive.commercepayment.domain.user.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -14,6 +16,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Getter
@@ -48,7 +51,7 @@ public class Order {
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private LocalDateTime modifiedAt;
 
     @Column(nullable = true)
@@ -59,20 +62,17 @@ public class Order {
     @JoinColumn(nullable = false, name = "user_id")
     private User user;
 
-    // TODO: custom exception 생성
-
     public Order (
         BigDecimal totalPrice,
         User user
     ) {
-        // if (totalPrice < 0) {
+        Objects.requireNonNull(totalPrice);
+        Objects.requireNonNull(user);
+
         if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException(
-                String.format(
+            throw new InvalidOrderPriceException(String.format(
                     "가격을 %s로 설정할려고 합니다. 가격은 음수 일 수 없습니다.",
-                    totalPrice
-                )
-            );
+                    totalPrice));
         }
 
         this.totalPrice = totalPrice;
@@ -82,7 +82,7 @@ public class Order {
 
     public void setStatusToRefund() {
         if (this.status != OrderStatus.COMPLETED) {
-            throw new RuntimeException(
+            throw new InvalidOrderStatusException(
                 String.format("%s상태에서 %s상태로 바꿀 수 는 없습니다.",
                     this.status, OrderStatus.REFUNDED)
             );
@@ -93,7 +93,7 @@ public class Order {
 
     public void setStatusToCompleted() {
         if (this.status != OrderStatus.PAYMENT_PENDING) {
-            throw new RuntimeException(
+            throw new InvalidOrderStatusException(
                 String.format("%s상태에서 %s상태로 바꿀 수 는 없습니다.",
                     this.status, OrderStatus.COMPLETED)
             );
@@ -103,6 +103,6 @@ public class Order {
     }
 
     public void updateStatusForce(OrderStatus status) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status);
     }
 }

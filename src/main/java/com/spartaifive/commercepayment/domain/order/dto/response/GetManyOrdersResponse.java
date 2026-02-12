@@ -6,9 +6,6 @@ import java.util.UUID;
 
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
-import com.spartaifive.commercepayment.domain.product.entity.Product;
-import com.spartaifive.commercepayment.domain.product.entity.ProductCategory;
-import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

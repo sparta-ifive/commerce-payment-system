@@ -1,7 +1,6 @@
 package com.spartaifive.commercepayment.domain.order.controller;
 
 import com.spartaifive.commercepayment.common.auth.AuthUtil;
-import com.spartaifive.commercepayment.common.auth.UserDetailsImpl;
 import com.spartaifive.commercepayment.common.response.DataResponse;
 import com.spartaifive.commercepayment.domain.order.dto.request.AddOrderRequest;
 import com.spartaifive.commercepayment.domain.order.dto.response.GetManyOrdersResponse;
@@ -14,7 +13,6 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
