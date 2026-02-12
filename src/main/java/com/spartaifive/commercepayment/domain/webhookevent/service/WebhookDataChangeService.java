@@ -40,6 +40,8 @@
 //            product.decreaseStock(productList.get(i).getQuantity());
 //        }
 //    }
+
+//결제상태랑 주문상태도 수정해야 함
 //
 //}
 //
