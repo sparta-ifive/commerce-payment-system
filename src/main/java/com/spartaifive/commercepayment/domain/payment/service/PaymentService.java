@@ -16,13 +16,11 @@ import com.spartaifive.commercepayment.domain.payment.dto.response.*;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
-import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.refund.entity.Refund;
 import com.spartaifive.commercepayment.domain.refund.entity.RefundStatus;
 import com.spartaifive.commercepayment.domain.refund.repository.RefundRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -154,52 +152,17 @@ public class PaymentService {
         }
 
         // 결제 금액 검증
-        BigDecimal actualAmount = portOneResponse.amount() != null ? portOneResponse.amount().total() : null;
-        if (actualAmount == null) {
-            payment.fail(portOneResponse.transactionId());
-            Payment failedPayment = paymentRepository.save(payment);
-            throw new IllegalStateException("PortOne 결제 금액을 확인할 수 없습니다");
-        }
-
-        // expectAmount != actualAmount 비교 검증
-        if (payment.getExpectedAmount().compareTo(actualAmount) != 0) {
-            payment.fail(portOneResponse.transactionId());
-            Payment failedPayment = paymentRepository.save(payment);
-            throw new IllegalStateException(
-                    "결제 금액이 일치하지 않습니다 expected=" + payment.getExpectedAmount()
-                            + ", actual=" + actualAmount);
-        }
+        BigDecimal actualAmount = requireActualAmount(portOneResponse);
+        validatePaymentAmount(payment, actualAmount, portOneResponse.transactionId());
 
         // 재고 검증 및 차감
         Order order = payment.getOrder();
-        List<OrderProduct> orderProducts = orderProductRepository.findAllByOrder_Id(order.getId());
+        List<OrderProduct> orderProducts = getOrderProducts(order);
+        validateAndDecreaseStock(orderProducts, payment, portOneResponse.transactionId());
 
-        // 전체 주문 상품 재고 동시에 확인 검증
-        for (OrderProduct op :  orderProducts) {
-            Long qty = op.getQuantity();
-            Long stock = op.getProduct().getStock();
-            if (qty > stock) {
-                payment.fail(portOneResponse.transactionId());
-                Payment failedPayment = paymentRepository.save(payment);
-                throw new IllegalStateException(
-                        "재고 부족: productId=" + op.getProduct().getId()
-                                + ", quantity=" + qty + ", stock=" + stock
-                );
-            }
-        }
-
-        // 주문 상품 동시 차감
-        for (OrderProduct op :  orderProducts) {
-            op.getProduct().decreaseStock(op.getQuantity());
-        }
 
         // 결제 확정 및 상태 전이
-        LocalDateTime paidAt = parsePortOneTime(portOneResponse.paidAt());
-        payment.confirm(portOneResponse.transactionId(), actualAmount, paidAt);
-        order.setStatusToCompleted();
-
-        Payment saved = paymentRepository.save(payment);
-        return ConfirmPaymentSuccessResponse.from(saved);
+        return applyPaidTransition(payment, order, portOneResponse, actualAmount);
     }
 
     /// 결제 조회
@@ -320,25 +283,94 @@ public class PaymentService {
             throw new IllegalStateException("PortOne 환불 금액 불일치 cancelled=" + cancelAmount+ ", expected=" + refundAmount);
         }
 
-        // 결제 상태 전이: REFUNDED
-        Payment refundedPayment = payment.refund(request.reason());
-        paymentRepository.save(refundedPayment);
+        // 재고 원복 및 상태 전이
+        return applyRefundCompletedTransition(payment, order, refund, request.reason());
+    }
 
-        // 주문 상태 전이: REFUNDED
-        order.setStatusToRefund();
-        Order refundedOrder = orderRepository.save(order);
+    /// payment helper method ///
+    // 실 결제 금액 조회
+    private BigDecimal requireActualAmount(PortOnePaymentResponse portOneResponse) {
+        BigDecimal actual = portOneResponse.amount() != null ? portOneResponse.amount().total() : null;
+        if (actual == null) {
+            throw new IllegalStateException("PortOne 결제 금액을 확인할 수 없습니다");
+        }
+        return actual;
+    }
 
-        List<OrderProduct> orderProducts = orderProductRepository.findAllByOrder_Id(order.getId());
-        orderProducts.forEach(op -> {
-            Product product = op.getProduct();
+    // 결제 금액 검증
+    private void validatePaymentAmount(Payment payment, BigDecimal actualAmount, String portonePaymentId) {
+        if (payment.getExpectedAmount().compareTo(actualAmount) != 0) {
+            payment.fail(portonePaymentId);
+            paymentRepository.save(payment);
+            throw new IllegalStateException(
+                    "결제 금액이 일치하지 않습니다 expected=" + payment.getExpectedAmount()
+                            + ", actual=" + actualAmount);
+        }
+    }
+
+    // 주문 조회
+    private List<OrderProduct> getOrderProducts(Order order) {
+        return orderProductRepository.findAllByOrder_Id(order.getId());
+    }
+
+    // 재고 검증 및 차감
+    private void validateAndDecreaseStock(List<OrderProduct> orderProducts, Payment payment, String portonePaymentId) {
+        // 전체 재고 동시 검증
+        for (OrderProduct op : orderProducts) {
             Long qty = op.getQuantity();
-            product.increaseStock(qty);
-        });
+            Long stock = op.getProduct().getStock();
+            if (qty > stock) {
+                payment.fail(portonePaymentId);
+                paymentRepository.save(payment);
+                throw new IllegalStateException(
+                        "재고 부족: productId=" + op.getProduct().getId()
+                                + ", quantity=" + qty + ", stock=" + stock
+                );
+            }
+        }
 
+        // 동시 차감
+        for (OrderProduct op : orderProducts) {
+            op.getProduct().decreaseStock(op.getQuantity());
+        }
+    }
+
+    // 결제 확정 및 상태 전이
+    private ConfirmPaymentResponse applyPaidTransition(
+            Payment payment, Order order, PortOnePaymentResponse portOneResponse, BigDecimal actualAmount) {
+        LocalDateTime paidAt = parsePortOneTime(portOneResponse.paidAt());
+
+        payment.confirm(portOneResponse.transactionId(), actualAmount, paidAt);
+        order.setStatusToCompleted();
+
+        Payment saved = paymentRepository.save(payment);
+        return ConfirmPaymentSuccessResponse.from(saved);
+    }
+
+    // 재고 원복
+    private void restoreStock(Order order) {
+        List<OrderProduct> orderProducts = getOrderProducts(order);
+        orderProducts.forEach(op -> op.getProduct().increaseStock(op.getQuantity()));
+    }
+
+    // 상태 전이 및 환불 기록 (스냅샷)
+    private RefundResponse applyRefundCompletedTransition(
+            Payment payment, Order order, Refund refund, String reason) {
+        // 결제/주문 상태 전이
+        payment.refund(reason);
+        paymentRepository.save(payment);
+
+        order.setStatusToRefund();
+        orderRepository.save(order);
+
+        // 재고 원복
+        restoreStock(order);
+
+        // 환불 완료
         refund.complete();
         refundRepository.save(refund);
 
-        return RefundResponse.from(refundedPayment, refundedOrder);
+        return RefundResponse.from(payment, order);
     }
 
     // LocalDateTime.parse 불가로 임시 구현
