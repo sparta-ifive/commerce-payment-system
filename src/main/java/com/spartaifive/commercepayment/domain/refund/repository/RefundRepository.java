@@ -9,8 +9,4 @@ import java.util.Optional;
 
 public interface RefundRepository extends JpaRepository<Refund, Long> {
     Optional<Refund> findByPayment(Payment payment);
-
-    boolean existsByPaymentId(Long paymentId);
-
-    Refund findByPayment_Id(Long paymentId);
 }

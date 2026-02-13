@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record ConfirmPaymentRequest(
         @NotNull(message = "merchantPayment ID는 필수입니다")
-        @JsonAlias("{portonePaymentId}")
+        @JsonAlias({"portonePaymentId", "paymentId"})
         String merchantPaymentId,
         @NotNull(message = "주문 ID는 필수입니다")
         Long orderId
