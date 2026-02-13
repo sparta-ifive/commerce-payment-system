@@ -32,12 +32,12 @@ public class Webhook {
     private String paymentId;
 
     @CreatedDate
+    private LocalDateTime createdAt;
+
     @Column(nullable = false)
     private LocalDateTime receivedAt;
 
     private LocalDateTime completedAt;
-
-
 
     public Webhook(String webhookId, String paymentId, LocalDateTime receivedAt) {
         this.webhookId = webhookId;
@@ -55,7 +55,4 @@ public class Webhook {
         this.status = EventStatus.FAILED;
         this.completedAt = LocalDateTime.now();
     }
-
-
-
 }

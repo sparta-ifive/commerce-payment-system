@@ -83,7 +83,11 @@ public record PortOnePaymentResponse(
     }
 
     public boolean isCancelled() {
-        return "CANCELLED".equalsIgnoreCase(status);
+        if (status != null && "CANCELLED".equalsIgnoreCase(status.trim())) {
+            return true;
+        }
+        BigDecimal cancelled = (amount != null) ? amount.cancelled() : null;
+        return cancelled != null && cancelled.compareTo(BigDecimal.ZERO) > 0;
     }
 
     public boolean isFailed() {
