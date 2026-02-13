@@ -16,4 +16,16 @@ public enum PaymentStatus {
         this.statusCode = statusCode;
         this.statusDescription = statusDescription;
     }
+
+    public boolean canTransition(PaymentStatus target) {
+        if (target == null) {
+            return false;
+        }
+
+        return switch (this) {
+            case READY -> target == PAID || target == FAILED;
+            case PAID ->  target == REFUNDED;
+            case FAILED, REFUNDED -> false;
+        };
+    }
 }
