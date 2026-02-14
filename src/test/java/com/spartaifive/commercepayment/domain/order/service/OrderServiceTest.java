@@ -6,20 +6,25 @@ import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
 import com.spartaifive.commercepayment.domain.order.repository.OrderProductRepository;
 import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
-import com.spartaifive.commercepayment.domain.point.service.DatabaseCleaner;
+import com.spartaifive.commercepayment.common.util.DatabaseCleaner;
+import com.spartaifive.commercepayment.domain.payment.entity.Payment;
+import com.spartaifive.commercepayment.domain.point.entity.Point;
+import com.spartaifive.commercepayment.domain.point.entity.PointAudit;
 import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.product.entity.ProductCategory;
 import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
+import com.spartaifive.commercepayment.domain.refund.entity.Refund;
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
 import com.spartaifive.commercepayment.domain.user.entity.User;
+import com.spartaifive.commercepayment.domain.user.entity.UserRefreshToken;
 import com.spartaifive.commercepayment.domain.user.repository.MembershipGradeRepository;
 import com.spartaifive.commercepayment.domain.user.repository.UserRepository;
+import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,22 +54,19 @@ public class OrderServiceTest {
     @Autowired
     DatabaseCleaner dbCleaner;
 
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
     @BeforeEach
     public void cleanup() {
         dbCleaner.deleteTables(
-                "order_products",
-                "orders",
-                "payments",
-                "point_audits",
-                "points",
-                "products",
-                "refresh_token",
-                "refunds",
-                "users",
-                "webhook_events"
+                OrderProduct.class,
+                Order.class,
+                Payment.class,
+                PointAudit.class,
+                Point.class,
+                Product.class,
+                UserRefreshToken.class,
+                Refund.class,
+                User.class,
+                Webhook.class
         );
     }
 
@@ -82,14 +84,21 @@ public class OrderServiceTest {
                 "password",
                 "01011112222");
 
+        Product product1 = new Product("포카칩", new BigDecimal("1000"), 10L, ProductStatus.ON_SALE, ProductCategory.FOOD, "맛있는 감자칩");
+        Product product2 = new Product("배터리", new BigDecimal("2000"), 1L, ProductStatus.ON_SALE, ProductCategory.ELECTRONICS, "AA 배터리");
+        Product product3 = new Product("요요", new BigDecimal("1500"), 5L, ProductStatus.DISCONTINUED ,ProductCategory.TOY, "재밌는 요요");
+        Product product4 = new Product("모자", new BigDecimal("1500"), 3L, ProductStatus.ON_SALE, ProductCategory.CLOTHES, "그냥 모자");
+        // 일부러 손수건은 재고가 다 떨어져 있지 않은 상태에서 OUT_OF_STOCK입니다.
+        Product product5 = new Product("손수건", new BigDecimal("3000"), 3L, ProductStatus.OUT_OF_STOCK, ProductCategory.CLOTHES, "예쁜 손수거");
+        Product product6 = new Product("새우깡", new BigDecimal("1200"), 0L, ProductStatus.OUT_OF_STOCK, ProductCategory.FOOD, "새우맛 과자");
+
         List<Product> products = List.of(
-                new Product("포카칩", new BigDecimal("1000"), 10L, ProductStatus.ON_SALE, ProductCategory.FOOD, "맛있는 감자칩"),
-                new Product("배터리", new BigDecimal("2000"), 1L, ProductStatus.ON_SALE, ProductCategory.ELECTRONICS, "AA 배터리"),
-                new Product("요요", new BigDecimal("1500"), 5L, ProductStatus.DISCONTINUED ,ProductCategory.TOY, "재밌는 요요"),
-                new Product("모자", new BigDecimal("1500"), 3L, ProductStatus.ON_SALE, ProductCategory.CLOTHES, "그냥 모자"),
-                // 일부러 손수건은 재고가 다 떨어져 있지 않은 상태에서 OUT_OF_STOCK입니다.
-                new Product("손수건", new BigDecimal("3000"), 3L, ProductStatus.OUT_OF_STOCK, ProductCategory.CLOTHES, "예쁜 손수거"), 
-                new Product("새우깡", new BigDecimal("1200"), 0L, ProductStatus.OUT_OF_STOCK, ProductCategory.FOOD, "새우맛 과자")
+                product1,
+                product2,
+                product3,
+                product4,
+                product5,
+                product6
         );
 
         Order order = new Order(BigDecimal.valueOf(1000), user);
@@ -101,7 +110,14 @@ public class OrderServiceTest {
         }
 
         user = userRepository.save(user);
-        productRepository.saveAll(products);
+
+        product1 = productRepository.save(product1);
+        product2 = productRepository.save(product2);
+        product3 = productRepository.save(product3);
+        product4 = productRepository.save(product4);
+        product5 = productRepository.save(product5);
+        product6 = productRepository.save(product6);
+
         orderRepository.save(order);
         orderProducts = orderProductRepository.saveAll(orderProducts);
 
@@ -113,7 +129,7 @@ public class OrderServiceTest {
         try {
             orderService.addOrder(addOrderRequest, user.getId());
         } catch (ProductsNotAvailableException e) {
-            assertThat(e.getUnAvailableProductIds()).containsExactlyInAnyOrder(3L, 5L, 6L);
+            assertThat(e.getUnAvailableProductIds()).containsExactlyInAnyOrder(product3.getId(), product5.getId(), product6.getId());
         }
     }
 }

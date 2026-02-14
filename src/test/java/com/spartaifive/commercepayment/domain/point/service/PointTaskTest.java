@@ -1,11 +1,19 @@
 package com.spartaifive.commercepayment.domain.point.service;
 
+import com.spartaifive.commercepayment.common.util.DatabaseCleaner;
 import com.spartaifive.commercepayment.domain.order.entity.Order;
+import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
+import com.spartaifive.commercepayment.domain.point.entity.Point;
+import com.spartaifive.commercepayment.domain.point.entity.PointAudit;
 import com.spartaifive.commercepayment.domain.point.tasks.PointTasks;
+import com.spartaifive.commercepayment.domain.product.entity.Product;
+import com.spartaifive.commercepayment.domain.refund.entity.Refund;
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
 import com.spartaifive.commercepayment.domain.user.entity.User;
+import com.spartaifive.commercepayment.domain.user.entity.UserRefreshToken;
 import com.spartaifive.commercepayment.domain.user.repository.MembershipGradeRepository;
+import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import jakarta.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -47,16 +55,16 @@ public class PointTaskTest {
     @BeforeEach
     public void cleanup() {
         dbCleaner.deleteTables(
-                "order_products",
-                "orders",
-                "payments",
-                "point_audits",
-                "points",
-                "products",
-                "refresh_token",
-                "refunds",
-                "users",
-                "webhook_events"
+                OrderProduct.class,
+                Order.class,
+                Payment.class,
+                PointAudit.class,
+                Point.class,
+                Product.class,
+                UserRefreshToken.class,
+                Refund.class,
+                User.class,
+                Webhook.class
         );
     }
 
