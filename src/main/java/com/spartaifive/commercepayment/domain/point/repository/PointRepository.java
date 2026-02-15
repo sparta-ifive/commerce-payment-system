@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface PointRepository extends JpaRepository<Point, Long> {
     List<Point> findPointByOwnerUser(User ownerUser);
+
+    List<Point> findPointByOwnerUser_Id(Long ownerUserId);
 }

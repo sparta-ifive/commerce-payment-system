@@ -17,15 +17,19 @@ import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import jakarta.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +56,9 @@ public class PointTaskTest {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+    @MockitoBean
+    private Clock clock;
+
     @BeforeEach
     public void cleanup() {
         dbCleaner.deleteTables(
@@ -70,6 +77,17 @@ public class PointTaskTest {
 
     @RepeatedTest(2)
     public void test() {
+        // ===================
+        // GIVEN
+        // ===================
+
+        // 8일 전으로 시간 여행
+        LocalDateTime time8DaysAgo = LocalDateTime.now().minusDays(8);
+
+        Mockito.when(clock.instant()).thenReturn(time8DaysAgo.atZone(ZoneId.systemDefault()).toInstant());
+        Mockito.when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+        // user 생성
         User user1;
         User user2;
         User user3;
@@ -127,13 +145,17 @@ public class PointTaskTest {
             }
         }
 
-        LocalDateTime time8DaysAgo = LocalDateTime.now().minusDays(8);
-
+        // 가짜 구매 내역 생성
         var orderPayment1 = createFakePurchase(user1, BigDecimal.valueOf(1000), time8DaysAgo);
         var orderPayment2 = createFakePurchase(user2, BigDecimal.valueOf(50000), time8DaysAgo);
         var orderPayment3 = createFakePurchase(user3, BigDecimal.valueOf(100000), time8DaysAgo);
         var orderPayment4 = createFakePurchase(user4, BigDecimal.valueOf(150000), time8DaysAgo);
 
+        // ===================
+        // WHEN
+        // ===================
+        
+        // 포인트 생성
         pointService.createPointAfterPaymentConfirm(
                 orderPayment1.getSecond().getId(),
                 orderPayment1.getFirst().getId(),
@@ -158,6 +180,15 @@ public class PointTaskTest {
                 user4.getId()
         );
 
+        // ===================
+        // THEN
+        // ===================
+
+        // 현재로 돌아옴
+        Mockito.when(clock.instant()).thenReturn(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
+        Mockito.when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+        // 포인트와 멤버쉽이 맞는지 확인
         pointTasks.calculateMembershipAndReadyPoints();
 
         {
@@ -175,6 +206,11 @@ public class PointTaskTest {
                 assertThat(user2.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("NORMAL").get().getName());
                 assertThat(user3.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("VIP").get().getName());
                 assertThat(user4.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("VVIP").get().getName());
+
+                assertThat(pointService.getUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
+                assertThat(pointService.getUserPoints(user2.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(500));
+                assertThat(pointService.getUserPoints(user3.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(3000));
+                assertThat(pointService.getUserPoints(user4.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(7500));
 
                 tx.commit();
             } finally {

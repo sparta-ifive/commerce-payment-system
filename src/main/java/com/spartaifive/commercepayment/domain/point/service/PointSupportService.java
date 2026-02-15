@@ -95,13 +95,13 @@ public class PointSupportService {
         for (Point point : points) {
             if (
                     point.getPointStatus().equals(PointStatus.NOT_READY_TO_BE_SPENT) &&
-                    point.getCreatedAt().isBefore(paymentConfirmDay)
+                    point.getParentPayment().getPaidAt().isBefore(paymentConfirmDay)
             ) {
-                BigDecimal pointAmount = getPointAmount(
+                BigDecimal pointAmount = getPointAmountPerPurchase(
                         point.getParentPayment().getActualAmount(),
                         membership.getRate()
                 );
-                point.updatePointAmount(pointAmount);
+                point.initPointAmount(pointAmount);
                 point.updatePointStatus(PointStatus.CAN_BE_SPENT);
 
                 PointAudit audit = new PointAudit(
@@ -121,7 +121,7 @@ public class PointSupportService {
         pointAuditRepository.saveAll(audits);
     }
 
-    public BigDecimal getPointAmount(
+    public BigDecimal getPointAmountPerPurchase(
             BigDecimal paymentAmount,
             Long rate
     ) {

@@ -76,7 +76,7 @@ public class Point {
         this.pointStatus = status;
     }
 
-    public void updatePointAmount(BigDecimal amount) {
+    public void initPointAmount(BigDecimal amount) {
         this.originalPointAmount = amount;
         this.pointRemaining = amount;
     }
