@@ -30,10 +30,12 @@ public class PointTasks {
     private final MembershipGradeRepository membershipGradeRepository;
     private final PointSupportService pointSupportService;
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "${app.schedules.point-membership-batching}")
     @Transactional
     public void calculateMembershipAndReadyPoints() {
         LocalDateTime now = LocalDateTime.now(clock);
+
+        log.info("[POINT_TASK]: started updating user points and memberships");
 
         // TODO: 현재 한국시각을 기준으로 7일 이전을 기준으로 합니다.
         // 근데 이게 세계화로 할 경우 어떤 일이 발생할지는 잘 모르겠습니다.
@@ -67,5 +69,7 @@ public class PointTasks {
                 log.error("[POINT_TASK]: failed to update user {} point: {}", userId, e.getMessage());
             }
         }
+
+        log.info("[POINT_TASK]: finished updating user points and memberships");
     }
 }

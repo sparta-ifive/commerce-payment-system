@@ -49,6 +49,11 @@ app:
       tagline: 통합 커머스 플랫폼
       logo-text: 🏪 CommerceHub
 
+  # 고객의 포인트와 멤버쉽 정보를 업데이트 하는 시각
+  # 기본적으로 새벽 3시
+  schedules:
+    point-membership-batching : "0 0 3 * * *"
+
 logging:
   level:
     com.spartaifive.commercepayment: DEBUG
