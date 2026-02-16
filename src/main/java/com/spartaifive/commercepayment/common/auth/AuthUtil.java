@@ -1,7 +1,10 @@
 package com.spartaifive.commercepayment.common.auth;
 
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
 
 /**
  * 인증 유틸리티
@@ -16,7 +19,7 @@ public class AuthUtil {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("인증되지 않은 사용자입니다.");
+            throw new ServiceErrorException(ERR_TOKEN_MISSING);
         }
 
         Object principal = authentication.getPrincipal();
@@ -25,7 +28,7 @@ public class AuthUtil {
             return (UserDetailsImpl) principal;
         }
 
-        throw new IllegalStateException("유효하지 않은 인증 정보입니다.");
+        throw new ServiceErrorException(ERR_TOKEN_INVALID);
     }
 
     /**
@@ -58,7 +61,7 @@ public class AuthUtil {
         Long currentUserId = getCurrentUserId();
 
         if (!currentUserId.equals(resourceOwnerId)) {
-            throw new RuntimeException("해당 리소스에 접근할 권한이 없습니다.");
+            throw new ServiceErrorException(ERR_ACCESS_DENIED);
         }
     }
 }
