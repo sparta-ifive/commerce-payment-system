@@ -24,6 +24,13 @@ public enum ErrorCode {
     ERR_REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "유효하지 않은 리프레시 토큰입니다"),
     ERR_REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 만료되었습니다"),
     ERR_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
+    ERR_REFRESH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "이미 로그아웃된 토큰입니다"),
+
+    // ===== 상품(Product) =====
+    ERR_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
+
+    // ===== 멤버십(Membership) =====
+    ERR_MEMBERSHIP_GRADE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "기본 멤버십(NORMAL)을 찾을 수 없습니다"),
 
     // ===== 주문(Order) =====
     ERR_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다"),
@@ -42,7 +49,7 @@ public enum ErrorCode {
     ERR_PAYMENT_AMOUNT_MISMATCH(HttpStatus.CONFLICT, "결제 금액이 일치하지 않습니다"),
     ERR_PAYMENT_ALREADY_REFUNDED(HttpStatus.CONFLICT, "이미 환불된 결제입니다"),
     ERR_ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "환불된 주문은 재결제 할 수 없습니다"),
-
+    ERR_PORTONE_PAYMENT_ID_MISMATCH(HttpStatus.CONFLICT, "이미 다른 portonePaymentId로 처리된 결제입니다"),
 
     // ===== 환불(Refund) =====
     ERR_REFUND_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 환불 이력이 존재합니다"),
