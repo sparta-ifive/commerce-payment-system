@@ -1,6 +1,7 @@
 package com.spartaifive.commercepayment.domain.payment.service;
 
 import com.spartaifive.commercepayment.common.audit.AuditTxService;
+import com.spartaifive.commercepayment.common.constatns.Constants;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelRequest;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelResponse;
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
@@ -29,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +48,7 @@ public class PaymentService {
     private final RefundRepository refundRepository;
     private final AuditTxService auditTxService;
     private final PointService pointService;
+    private final Constants constants;
 
     /**
      * 결제 시도(Attempt) 생성
@@ -267,6 +271,16 @@ public class PaymentService {
         // 결제 상태가 PAID 인지 확인
         if (payment.getPaymentStatus() != PaymentStatus.PAID) {
             throw new IllegalStateException("환불 가능한 결제 상태가 아닙니다 status=" + payment.getPaymentStatus());
+        }
+
+        // 결제가 환불이 가능한 시기를 놓쳤는지 확인
+        {
+            LocalDateTime canRefundBefore = payment.getPaidAt().plus(constants.getRefundPeriod());
+
+            if (!LocalDateTime.now().isBefore(canRefundBefore)) {
+                // TODO: 환불 가능 기간을 고객이 읽기 쉽게 만들어 돌려주기
+                throw new IllegalStateException("환불 가능한 시기를 지나 환불이 불가능 합니다");
+            }
         }
 
         // 전액 환불 금액 스냅샷
@@ -515,13 +529,13 @@ public class PaymentService {
         }
     }
 
-    // LocalDateTime.parse 불가로 임시 구현
     private LocalDateTime parsePortOneTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            return OffsetDateTime.parse(value).toLocalDateTime();
+            ZonedDateTime zoned = OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault());
+            return zoned.toLocalDateTime();
         } catch (DateTimeParseException ignored) {
             try {
                 return LocalDateTime.parse(value);
