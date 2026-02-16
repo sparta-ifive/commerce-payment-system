@@ -8,6 +8,7 @@ import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
 import com.spartaifive.commercepayment.domain.point.entity.PointAudit;
 import com.spartaifive.commercepayment.domain.point.entity.PointAuditType;
+import com.spartaifive.commercepayment.domain.point.entity.PointStatus;
 import com.spartaifive.commercepayment.domain.point.repository.PointAuditRepository;
 import com.spartaifive.commercepayment.domain.point.repository.PointRepository;
 import com.spartaifive.commercepayment.domain.user.entity.User;
@@ -19,9 +20,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PointService {
@@ -41,17 +45,11 @@ public class PointService {
             Long orderId,
             Long userId
     ) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 결제는 존재하지 않습니다", paymentId)));
+        Payment payment = getPaymentById(paymentId);
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 주문은 존재하지 않습니다", orderId)));
+        Order order = getOrderById(orderId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 고객은 존재하지 않습니다", userId)));
+        User user = getUserById(userId);
 
         // 포인트 생성시 결제는 완료여야 합니다.
         if (!payment.getPaymentStatus().equals(PaymentStatus.PAID)) {
@@ -111,9 +109,7 @@ public class PointService {
             Long orderId,
             Long userId
     ) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 결제는 존재하지 않습니다", paymentId)));
+        Payment payment = getPaymentById(paymentId);
 
         // 이 결제는 포인트를 쓸게 아니므로 돌려주기
         if (payment.getPointToSpend() == null) {
@@ -127,13 +123,9 @@ public class PointService {
             return;
         }
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 주문은 존재하지 않습니다", orderId)));
+        Order order = getOrderById(orderId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 고객은 존재하지 않습니다", userId)));
+        User user = getUserById(userId);
 
         // 포인트 생성시 결제는 완료여야 합니다.
         if (!payment.getPaymentStatus().equals(PaymentStatus.PAID)) {
@@ -179,5 +171,56 @@ public class PointService {
         }
 
         pointAuditRepository.saveAll(pointAudits);
+    }
+
+    @Transactional()
+    public void voidPoints(
+            Long paymentId,
+            Long orderId,
+            Long userId
+    ) {
+        Payment payment = paymentRepository.getReferenceById(paymentId);
+
+        Order order = orderRepository.getReferenceById(orderId);
+
+        User user = userRepository.getReferenceById(userId);
+
+        List<Point> points = pointRepository.getPointsToVoidPerUserAndPayment(userId, paymentId);
+        List<PointAudit> pointAudits = new ArrayList<>();
+
+        for (Point point : points) {
+            point.updatePointStatus(PointStatus.VOIDED);
+
+            PointAudit audit = new PointAudit(
+                    user,
+                    order,
+                    payment,
+                    point,
+                    PointAuditType.POINT_VOIDED
+            );
+
+            pointAudits.add(audit);
+        }
+
+        pointAuditRepository.saveAll(pointAudits);
+        pointRepository.saveAll(points);
+    }
+
+    private Payment getPaymentById(Long paymentId) {
+        return paymentRepository.findById(paymentId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 결제는 존재하지 않습니다", paymentId)));
+    }
+
+    private Order getOrderById(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 주문은 존재하지 않습니다", orderId)));
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 고객은 존재하지 않습니다", userId)));
     }
 }

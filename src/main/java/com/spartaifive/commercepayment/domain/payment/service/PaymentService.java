@@ -489,6 +489,10 @@ public class PaymentService {
         if (refund.getStatus() != RefundStatus.COMPLETED) {
             auditTxService.markRefundCompleted(refund);
         }
+
+        // 포인트 반환
+        pointService.voidPoints(
+                payment.getId(), order.getId(), payment.getUserId());
     }
 
     // portOne 응답 검증 (취소 완료 확인)
