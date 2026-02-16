@@ -36,9 +36,12 @@ public class PointService {
     private final PointAuditRepository pointAuditRepository;
     private final PointSupportService pointSupportService;
 
-    // TODO: N+1을 막기 위해서 entity를 받을 수 도 있지만 일단은
-    // 정상적으로 작동 하는 것을 확인 하는 것이 먼저기 때문에 성능은 포기하고
-    // id를 받습니다.
+    // 이 서비스의 메소드들이 엔티티 대신에 엔티티 ID를 받는 이유는
+    // 미래에 이 Transaction들이 @Transactional(propagation = Propagation.REQUIRES_NEW)
+    // 로 바뀔 수도 있다고 생각하기 때문입니다.
+    //
+    // 그럴시 entity를 받을경우 PersistentObjectException이 일어 날 수 있기 때문에 ID로 일단 받습니다.
+
     @Transactional
     public void createPointAfterPaymentConfirm(
             Long paymentId,
@@ -79,9 +82,6 @@ public class PointService {
         pointAuditRepository.save(audit);
     }
 
-    // TODO: N+1을 막기 위해서 entity를 받을 수 도 있지만 일단은
-    // 정상적으로 작동 하는 것을 확인 하는 것이 먼저기 때문에 성능은 포기하고
-    // id를 받습니다.
     @Transactional(readOnly = true)
     public BigDecimal validatedAndSubtractPointFromOrderTotalPrice(
             Long userId,
