@@ -68,7 +68,8 @@ public enum ErrorCode {
     // ===== 웹훅(Webhook) =====
     ERR_WEBHOOK_SIGNATURE_INVALID(HttpStatus.UNAUTHORIZED, "웹훅 서명 검증에 실패했습니다"),
     ERR_WEBHOOK_STATE_MISMATCH(HttpStatus.CONFLICT, "주문과 결제의 상태가 일치하지 않습니다"),
-    ERR_WEBHOOK_AMOUNT_MISMATCH(HttpStatus.CONFLICT, "결제 금액 정합성 검증에 실패했습니다");
+    ERR_WEBHOOK_AMOUNT_MISMATCH(HttpStatus.CONFLICT, "결제 금액 정합성 검증에 실패했습니다"),
+    ERR_WEBHOOK_PROCESS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "웹훅 처리 중 서버 오류가 발생했습니다");
 
     private final HttpStatus httpStatus;
     private final String message;

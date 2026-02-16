@@ -1,6 +1,7 @@
 package com.spartaifive.commercepayment.domain.webhookevent.service;
 
 import com.spartaifive.commercepayment.common.audit.AuditTxService;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
 import com.spartaifive.commercepayment.domain.payment.service.PaymentService;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
 
 @RequiredArgsConstructor
 @Service
@@ -48,7 +51,7 @@ public class WebhookService {
             //포트원과 데이터 확인
             PortOnePaymentResponse portOne = portOneClient.getPayment(paymentId);
             if (portOne == null) {
-                throw new IllegalStateException("PortOne getpayment 응답이 null 입니다 paymentId=" + paymentId);
+                throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL);
             }
 
             paymentService.syncFromPortOneWebhook(paymentId, portOne);
@@ -65,7 +68,7 @@ public class WebhookService {
                     webhookId,
                     paymentId
             );
-            throw e; // 웹훅 재시도 유도
+            throw new ServiceErrorException(ERR_WEBHOOK_PROCESS_FAILED); // 웹훅 재시도 유도
         }
     }
 }
