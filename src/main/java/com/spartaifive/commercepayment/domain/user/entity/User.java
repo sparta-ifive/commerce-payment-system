@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(
@@ -74,5 +75,11 @@ public class User {
                 .totalPoint(0)
                 .totalPaidAmount(0)
                 .build();
+    }
+
+    public void updateMembership(MembershipGrade membershipGrade) {
+        Objects.requireNonNull(membershipGrade);
+        this.membershipUpdatedDate = LocalDateTime.now();
+        this.membershipGrade = membershipGrade;
     }
 }

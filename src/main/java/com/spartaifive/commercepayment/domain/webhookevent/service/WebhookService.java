@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+// *:  //* 붙어있는 코드들은 추후 살려야 하는 코드들임
+
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -60,14 +62,14 @@ public class WebhookService {
 //            validationService.updatePaymentConfirmed(paymentId);
 
             paymentService.syncFromPortOneWebhook(paymentId, portOne);
-            auditTxService.markWebhookProcessed(webhookId);
+            auditTxService.markWebhookProcessed(savedWebhook);
             log.info(
                     "[PORTONE_WEBHOOK] processed successfully. webhookId={}, paymentId={}",
                     webhookId,
                     paymentId
             );
         } catch (Exception e) {
-            auditTxService.markWebhookFailed(webhookId);
+            auditTxService.markWebhookFailed(savedWebhook);
             log.error(
                     "[PORTONE_WEBHOOK] processed failed. webhookId={}, paymentId={}",
                     webhookId,

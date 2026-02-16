@@ -3,6 +3,8 @@ package com.spartaifive.commercepayment.domain.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "membership_grades")
 @Getter
@@ -22,8 +24,20 @@ public class MembershipGrade {
     @Column(name = "membership_rate", nullable = false)
     private Long rate; // 적립률
 
-    public MembershipGrade(String name, Long rate) {
+    @Column(
+            name = "required_purchase_amount",
+            precision = 15,
+            scale = 2,
+            nullable = false
+    )
+    private BigDecimal requiredPurchaseAmount;
+
+    public MembershipGrade(
+            String name,
+            Long rate,
+            BigDecimal requiredPurchaseAmount) {
         this.name = name;
         this.rate = rate;
+        this.requiredPurchaseAmount = requiredPurchaseAmount;
     }
 }

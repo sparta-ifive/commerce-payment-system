@@ -4,6 +4,9 @@ import com.spartaifive.commercepayment.domain.product.repository.ProductReposito
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
 import com.spartaifive.commercepayment.domain.user.repository.MembershipGradeRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,8 +25,8 @@ public class MemberShipInitializer implements ApplicationRunner {
 
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
-        membershipGradeRepository.save(new MembershipGrade("NORMAL", 1L));
-        membershipGradeRepository.save(new MembershipGrade("VIP", 3L));
-        membershipGradeRepository.save(new MembershipGrade("VVIP", 5L));
+        membershipGradeRepository.save(new MembershipGrade("NORMAL", 1L, BigDecimal.valueOf(50000)));
+        membershipGradeRepository.save(new MembershipGrade("VIP", 3L, BigDecimal.valueOf(100000)));
+        membershipGradeRepository.save(new MembershipGrade("VVIP", 5L, BigDecimal.valueOf(150000)));
     }
 }

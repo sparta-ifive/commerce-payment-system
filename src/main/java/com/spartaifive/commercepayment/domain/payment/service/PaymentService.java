@@ -17,6 +17,7 @@ import com.spartaifive.commercepayment.domain.payment.dto.response.*;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
+import com.spartaifive.commercepayment.domain.point.service.PointService;
 import com.spartaifive.commercepayment.domain.refund.entity.Refund;
 import com.spartaifive.commercepayment.domain.refund.entity.RefundStatus;
 import com.spartaifive.commercepayment.domain.refund.repository.RefundRepository;
@@ -43,6 +44,7 @@ public class PaymentService {
     private final PortOneClient portOneClient;
     private final RefundRepository refundRepository;
     private final AuditTxService auditTxService;
+    private final PointService pointService;
 
     /**
      * 결제 시도(Attempt) 생성
@@ -257,7 +259,7 @@ public class PaymentService {
 
         // Refund 레코드 생성/갱신 REQUESTED
         Refund refund = Refund.request(payment, refundAmount, request.reason());
-        auditTxService.saveRefundRequested(refund);
+        refund = auditTxService.saveRefundRequested(refund);
 
         // PortOne Cancel 호출해서 전액 환불 (fullCancel)
         PortOneCancelResponse cancelResponse;
@@ -419,6 +421,14 @@ public class PaymentService {
 
         Payment saved = paymentRepository.save(payment);
         orderRepository.save(order);
+
+
+        // point 적립
+        pointService.createPointAfterPaymentConfirm(
+                payment.getId(),
+                order.getId(),
+                payment.getUserId()
+        );
 
         return ConfirmPaymentSuccessResponse.from(saved);
     }
