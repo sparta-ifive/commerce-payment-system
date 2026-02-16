@@ -1,6 +1,6 @@
 package com.spartaifive.commercepayment.domain.point.service;
 
-import com.spartaifive.commercepayment.common.constatns.Constants;
+import com.spartaifive.commercepayment.common.constants.Constants;
 import com.spartaifive.commercepayment.common.util.DatabaseCleaner;
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;

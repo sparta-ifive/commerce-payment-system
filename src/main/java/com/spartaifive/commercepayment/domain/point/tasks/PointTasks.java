@@ -1,15 +1,8 @@
 package com.spartaifive.commercepayment.domain.point.tasks;
 
-import com.spartaifive.commercepayment.common.constatns.Constants;
-import com.spartaifive.commercepayment.domain.payment.dto.ConfirmedPaymentAndUser;
-import com.spartaifive.commercepayment.domain.payment.entity.Payment;
-import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
-import com.spartaifive.commercepayment.domain.point.entity.Point;
-import com.spartaifive.commercepayment.domain.point.entity.PointStatus;
-import com.spartaifive.commercepayment.domain.point.repository.PointRepository;
+import com.spartaifive.commercepayment.common.constants.Constants;
 import com.spartaifive.commercepayment.domain.point.service.PointSupportService;
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
-import com.spartaifive.commercepayment.domain.user.entity.User;
 import com.spartaifive.commercepayment.domain.user.repository.MembershipGradeRepository;
 import com.spartaifive.commercepayment.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

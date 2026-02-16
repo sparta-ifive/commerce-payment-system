@@ -1,5 +1,7 @@
 package com.spartaifive.commercepayment.domain.webhookevent;
 
+import com.spartaifive.commercepayment.common.exception.ErrorCode;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -96,7 +98,7 @@ public class PortOneWebhookVerifier {
             mac.init(new SecretKeySpec(keyBytes, "HmacSHA256"));
             return mac.doFinal(data);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to compute webhook signature", e);
+            throw new ServiceErrorException(ErrorCode.ERR_WEBHOOK_SIGNATURE_INVALID);
         }
     }
 

@@ -1,6 +1,6 @@
 package com.spartaifive.commercepayment.common.external.portone;
 
-import com.spartaifive.commercepayment.exception.PortOneApiException;
+import com.spartaifive.commercepayment.common.exception.PortOneApiException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;

@@ -1,13 +1,11 @@
 package com.spartaifive.commercepayment.domain.payment.repository;
 
-import com.spartaifive.commercepayment.domain.payment.dto.ConfirmedPaymentAndUser;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,24 +21,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // MerchantId로 가장 마지막에 저장된 결제 목록 조회
     Optional<Payment> findTopByMerchantPaymentIdOrderByIdDesc(String merchantPaymentId);
 
-    // merchantId로 결제 목록에서 가장 마지막에 저장된 status가 ready인 결제 조회
-    Optional<Payment> findTopByMerchantPaymentIdAndPaymentStatusOrderByIdDesc(
-            String merchantPaymentId,
-            PaymentStatus paymentStatus
-    );
-
-    // orderId로 결제 목록에서 가장 마지막에 저장된 결제 조회
-    Optional<Payment> findTopByOrder_IdOrderByIdDesc(Long orderId);
-
     // default 메서드로 JPA 메서드 감싸기
-    default Optional<Payment> findLatestReadyByMerchantPaymentId(String merchantPaymentId) {
-        return findTopByMerchantPaymentIdAndPaymentStatusOrderByIdDesc(merchantPaymentId, PaymentStatus.READY);
-    }
-
-    default Optional<Payment> findLatestByOrderId(Long orderId) {
-        return findTopByOrder_IdOrderByIdDesc(orderId);
-    }
-
     default Optional<Payment> findLatestByMerchantPaymentId(String merchantPaymentId) {
         return findTopByMerchantPaymentIdOrderByIdDesc(merchantPaymentId);
     }

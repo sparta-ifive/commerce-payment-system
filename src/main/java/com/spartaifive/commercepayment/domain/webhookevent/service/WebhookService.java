@@ -1,21 +1,21 @@
-//최종본 service
-
 package com.spartaifive.commercepayment.domain.webhookevent.service;
 
 import com.spartaifive.commercepayment.common.audit.AuditTxService;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
 import com.spartaifive.commercepayment.domain.payment.service.PaymentService;
 import com.spartaifive.commercepayment.domain.webhookevent.dto.WebhookDto;
 import com.spartaifive.commercepayment.domain.webhookevent.entity.Webhook;
 import com.spartaifive.commercepayment.domain.webhookevent.repository.WebhookRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
 
 @RequiredArgsConstructor
 @Service
@@ -24,7 +24,6 @@ public class WebhookService {
     private final WebhookRepository webhookRepository;
     private final PortOneClient portOneClient;
     private final PaymentService paymentService;
-    private final WebhookValidationService validationService;
     private final AuditTxService auditTxService;
 
     @Transactional
@@ -34,7 +33,6 @@ public class WebhookService {
         String paymentId = webhookDto.getPaymentId();
         LocalDateTime receivedAt = webhookDto.getReceivedAt();
 
-        //주석 처리 문장들: todo
         // 1) webhook-id 멱등 처리
         //    - webhook-id UNIQUE로 이벤트 기록(webhook_event 테이블)
         //    - 이미 처리된 webhook-id면 즉시 200 반환
@@ -44,36 +42,33 @@ public class WebhookService {
         }
 
         Webhook webhook = new Webhook(webhookId, paymentId, receivedAt);
-        Webhook savedWebhook = webhookRepository.save(webhook);
+        auditTxService.savedWebhookReceived(webhook);
 
         // 2) paymentId로 PortOne 결제 조회
         //    - status / amount 확인
         //    - 주문 금액과 비교
         try {
-            //Todo: 결제가 현재 불가능하기 때문에 주석처리 부분(검증하는 부분) 살리면 오류가 남. 추후 확인 필요
             //포트원과 데이터 확인
             PortOnePaymentResponse portOne = portOneClient.getPayment(paymentId);
             if (portOne == null) {
-                throw new IllegalStateException("PortOne getpayment 응답이 null 입니다 paymentId=" + paymentId);
+                throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL);
             }
-//            validationService.validate(webhookDto, portOne);
-//            validationService.updatePaymentConfirmed(paymentId);
 
             paymentService.syncFromPortOneWebhook(paymentId, portOne);
-            auditTxService.markWebhookProcessed(savedWebhook);
+            auditTxService.markWebhookProcessed(webhookId);
             log.info(
                     "[PORTONE_WEBHOOK] processed successfully. webhookId={}, paymentId={}",
                     webhookId,
                     paymentId
             );
         } catch (Exception e) {
-            auditTxService.markWebhookFailed(savedWebhook);
+            auditTxService.markWebhookFailed(webhookId);
             log.error(
                     "[PORTONE_WEBHOOK] processed failed. webhookId={}, paymentId={}",
                     webhookId,
                     paymentId
             );
-            throw e; // 웹훅 재시도 유도
+            throw new ServiceErrorException(ERR_WEBHOOK_PROCESS_FAILED); // 웹훅 재시도 유도
         }
     }
 }

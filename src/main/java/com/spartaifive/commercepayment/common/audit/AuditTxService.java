@@ -17,32 +17,43 @@ public class AuditTxService {
     private final WebhookRepository webhookRepository;
 
     // ---- Refund ----
-    @Transactional()
+    @Transactional
     public void markRefundFailed(Refund refund, String message) {
         refund.fail(message);
         refundRepository.save(refund);
     }
 
-    @Transactional()
+    @Transactional
     public void markRefundCompleted(Refund refund) {
         refund.complete();
         refundRepository.save(refund);
     }
 
-    @Transactional()
+    @Transactional
     public Refund saveRefundRequested(Refund refund) {
         return refundRepository.save(refund);
     }
 
     // ---- Webhook Event ----
-    @Transactional()
-    public void markWebhookProcessed(Webhook webhook) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void savedWebhookReceived(Webhook webhook) {
+        webhookRepository.save(webhook);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markWebhookProcessed(String webhookId) {
+        Webhook webhook = webhookRepository.findByWebhookId(webhookId).orElseThrow(
+                () -> new IllegalStateException("webhook not found id=" + webhookId)
+        );
         webhook.processed();
         webhookRepository.save(webhook);
     }
 
-    @Transactional()
-    public void markWebhookFailed(Webhook webhook) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markWebhookFailed(String webhookId) {
+        Webhook webhook = webhookRepository.findByWebhookId(webhookId).orElseThrow(
+                () -> new IllegalStateException("webhook not found id=" + webhookId)
+        );
         webhook.failed();
         webhookRepository.save(webhook);
     }

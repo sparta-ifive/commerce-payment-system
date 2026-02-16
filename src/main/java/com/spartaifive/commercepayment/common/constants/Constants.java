@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.common.constatns;
+package com.spartaifive.commercepayment.common.constants;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;

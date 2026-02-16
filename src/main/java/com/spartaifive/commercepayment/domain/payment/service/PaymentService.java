@@ -1,7 +1,8 @@
 package com.spartaifive.commercepayment.domain.payment.service;
 
 import com.spartaifive.commercepayment.common.audit.AuditTxService;
-import com.spartaifive.commercepayment.common.constatns.Constants;
+import com.spartaifive.commercepayment.common.constants.Constants;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelRequest;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelResponse;
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
@@ -11,7 +12,6 @@ import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
 import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
 import com.spartaifive.commercepayment.domain.order.repository.OrderProductRepository;
 import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
-import com.spartaifive.commercepayment.domain.payment.dto.request.ConfirmPaymentRequest;
 import com.spartaifive.commercepayment.domain.payment.dto.request.PaymentAttemptRequest;
 import com.spartaifive.commercepayment.domain.payment.dto.request.RefundRequest;
 import com.spartaifive.commercepayment.domain.payment.dto.response.*;
@@ -26,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -36,6 +35,8 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
 
 @Service
 @RequiredArgsConstructor
@@ -60,11 +61,11 @@ public class PaymentService {
     @Transactional
     public PaymentAttemptResponse createPayment(Long userId, PaymentAttemptRequest request) {
         Order order = orderRepository.findById(request.orderId()).orElseThrow(
-                () -> new IllegalArgumentException("주문이 존재하지 않습니다 orderId=" + request.orderId())
+                () -> new ServiceErrorException(ERR_ORDER_NOT_FOUND)
         ); // NotFoundException 예외 처리
 
         if (order.getStatus() == OrderStatus.REFUNDED) {
-            throw new IllegalStateException("환불된 주문은 재결제 할 수 없습니다");
+            throw new ServiceErrorException(ERR_ORDER_ALREADY_REFUNDED);
         }
 
         BigDecimal expectedAmount = order.getTotalPrice();
@@ -96,24 +97,6 @@ public class PaymentService {
         return PaymentAttemptResponse.from(savedPayment);
     }
 
-    @Transactional
-    public ConfirmPaymentResponse confirmByPaymentId(Long userId, String paymentId) {
-        if (paymentId == null || paymentId.isBlank()) {
-            throw new IllegalArgumentException("paymentId는 필수 입니다");
-        }
-
-        Payment payment = paymentRepository.findLatestReadyByMerchantPaymentId(paymentId).orElseThrow(
-                () -> new IllegalArgumentException("결제 대기 상태인 결제가 존재하지 않습니다 paymentId=" + paymentId)
-        );
-
-        if (!payment.getUserId().equals(userId)) {
-            throw new IllegalStateException("결제 소유자가 아닙니다");
-        }
-
-        ConfirmPaymentRequest request = new ConfirmPaymentRequest(paymentId, payment.getOrder().getId());
-        return confirmPayment(userId, request);
-    }
-
     /**
      * 결제 확정(Confirm)
      * - Payment 조회 (merchantPaymentId 또는 paymentId 기준)
@@ -129,31 +112,15 @@ public class PaymentService {
      * - 결제 확정 결과 Response DTO 반환
      */
     @Transactional
-    public ConfirmPaymentResponse confirmPayment(Long userId, ConfirmPaymentRequest request) {
-        // merchantPaymentId, orderId null값 검증
-        if (userId == null)  {
-            throw new IllegalArgumentException("userId가 존재하지 않습니다");
-        }
-        if (request == null) {
-            throw new IllegalArgumentException("request가 존재하지 않습니다");
-        }
-        if (request.merchantPaymentId() == null || request.merchantPaymentId().isBlank()) {
-            throw new IllegalArgumentException("merchantPaymentId는 필수 입니다");
-        }
-
-        // merchantPaymentId로 결제 조회
-        Payment payment = paymentRepository.findByMerchantPaymentId(request.merchantPaymentId()).orElseThrow(
-                () -> new IllegalArgumentException("결제 대기 상태인 결제가 존재하지 않습니다 orderId=" + request.orderId())
+    public ConfirmPaymentResponse confirmByPaymentId(Long userId, String merchantPaymentId) {
+        // 결제 조회
+        Payment payment = paymentRepository.findLatestByMerchantPaymentId(merchantPaymentId).orElseThrow(
+                () -> new ServiceErrorException(ERR_PAYMENT_NOT_FOUND)
         );
-
-        // orderId 매칭 검증
-        if (!payment.getOrder().getId().equals(request.orderId())) {
-            throw new IllegalStateException("orderId가 결제와 일치하지 않습니다");
-        }
 
         // 결제 소유자 검증
         if (!payment.getUserId().equals(userId)) {
-            throw new IllegalStateException("결제 소유자가 아닙니다");
+            throw new ServiceErrorException(ERR_PAYMENT_OWNER_MISMATCH);
         }
 
         // 이미 PAID면 그대로 반환 (멱등)
@@ -161,17 +128,28 @@ public class PaymentService {
             return ConfirmPaymentSuccessResponse.from(payment);
         }
 
+        // 결제 대기 상태인지 검증
         if (payment.getPaymentStatus() != PaymentStatus.READY) {
-            throw new IllegalStateException("결제 확정이 불가능한 상태입니다 status=" + payment.getPaymentStatus());
+            throw new ServiceErrorException(ERR_PAYMENT_NOT_READY);
+        }
+
+        // 주문 조회
+        Long orderId = payment.getOrder().getId();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ServiceErrorException(ERR_ORDER_NOT_FOUND));
+
+        // 주문 상태 검증
+        if (order.getStatus() == OrderStatus.REFUNDED) {
+            throw new ServiceErrorException(ERR_ORDER_ALREADY_REFUNDED);
         }
 
         // PortOne 결제 조회
-        PortOnePaymentResponse portOne = portOneClient.getPayment(request.merchantPaymentId());
+        PortOnePaymentResponse portOne = portOneClient.getPayment(merchantPaymentId);
         if (portOne == null) {
-            throw new IllegalStateException("PortOne 응답이 null 입니다 merchantPaymentId=" + request.merchantPaymentId());
+            throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL);
         }
 
-        // 결제 상태 검증
+        // PortOne 결제 상태 검증
         if (!portOne.isPaid()) { // 결제 확정이 아니면 실패
             payment.fail(portOne.transactionId());
             Payment failedPayment = paymentRepository.save(payment);
@@ -183,63 +161,42 @@ public class PaymentService {
         BigDecimal actualAmount = requireActualAmount(portOne);
         validatePaymentAmount(payment, actualAmount, portOne.transactionId());
 
+        // portonePaymentId(transactionId) 멱등성/불일치 검증
+        if (payment.getPortonePaymentId() != null
+                && !payment.getPortonePaymentId().isBlank()
+                && !payment.getPortonePaymentId().equals(portOne.transactionId())) {
+            throw new ServiceErrorException(ERR_PORTONE_PAYMENT_ID_MISMATCH);
+        }
+
         // 재고 검증 및 차감
-        Order order = payment.getOrder();
         List<OrderProduct> orderProducts = getOrderProducts(order);
         validateAndDecreaseStock(orderProducts, payment, portOne.transactionId());
 
-
         // 결제 확정 및 상태 전이
         return applyPaidTransition(payment, order, portOne, actualAmount);
-    }
-
-    /// 결제 조회
-    @Transactional(readOnly = true)
-    public PaymentDetailResponse getLatestPaymentByOrderId(Long userId, Long orderId) {
-        if (orderId == null) {
-            throw new IllegalArgumentException("orderId는 필수입니다");
-        }
-
-        Order order = orderRepository.findById(orderId).orElseThrow(
-                () -> new IllegalArgumentException("주문이 존재하지 않습니다 orderId=" + orderId)
-        );
-
-        if (!order.getUser().getId().equals(userId)) {
-            throw new IllegalStateException("주문 소유자가 아닙니다");
-        }
-
-        Payment payment = paymentRepository.findLatestByOrderId(orderId).orElseThrow(
-                () -> new IllegalArgumentException("해당 주문의 결제가 존재하지 않습니다 orderId=" + orderId)
-        );
-
-        if (!payment.getUserId().equals(userId)) {
-            throw new IllegalStateException("결제 소유자가 아닙니다");
-        }
-
-        return PaymentDetailResponse.from(payment);
     }
 
     /// 결제 취소 (환불)
     @Transactional
     public RefundResponse refundOrder(Long userId, String merchantPaymentId, RefundRequest request) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId가 존재하지 않습니다");
+            throw new ServiceErrorException(ERR_INVALID_REQUEST, "userId는 필수입니다");
         }
         if (merchantPaymentId == null) {
-            throw new IllegalArgumentException("paymentId는 필수 입니다");
+            throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "merchantId는 필수입니다");
         }
         if (request == null || request.reason() == null || request.reason().isBlank()) {
-            throw new IllegalArgumentException("환불 사유는 필수 입니다");
+            throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "환불 사유는 필수 입니다");
         }
 
         // merchantId로 결제 조회
         Payment payment = paymentRepository.findByMerchantPaymentId(merchantPaymentId).orElseThrow(
-                () -> new IllegalStateException("환불 가능한 결제가 없습니다 merchantPaymentId=" + merchantPaymentId)
+                () -> new ServiceErrorException(ERR_PAYMENT_NOT_FOUND)
         );
 
         // 결제 소유자 검증
         if (!payment.getUserId().equals(userId)) {
-            throw new IllegalStateException("결제 소유자가 아닙니다");
+            throw new ServiceErrorException(ERR_PAYMENT_OWNER_MISMATCH);
         }
 
         // 주문 가져오기
@@ -260,17 +217,17 @@ public class PaymentService {
                 }
                 return RefundResponse.from(payment, order);
             }
-            throw new IllegalStateException("이미 환불 이력이 존재합니다 status=" + existing.getStatus());
+            throw new ServiceErrorException(ERR_REFUND_ALREADY_EXISTS);
         }
 
         // 주문 상태가 PAID 인지 확인
         if (order.getStatus() != OrderStatus.COMPLETED) {
-            throw new IllegalStateException("환불 가능한 주문 상태가 아닙니다 status=" + order.getStatus());
+            throw new ServiceErrorException(ERR_REFUND_NOT_ALLOWED_ORDER_STATUS);
         }
 
         // 결제 상태가 PAID 인지 확인
         if (payment.getPaymentStatus() != PaymentStatus.PAID) {
-            throw new IllegalStateException("환불 가능한 결제 상태가 아닙니다 status=" + payment.getPaymentStatus());
+            throw new ServiceErrorException(ERR_REFUND_NOT_ALLOWED_PAYMENT_STATUS);
         }
 
         // 결제가 환불이 가능한 시기를 놓쳤는지 확인
@@ -286,7 +243,7 @@ public class PaymentService {
         // 전액 환불 금액 스냅샷
         BigDecimal refundAmount = payment.getActualAmount() != null ? payment.getActualAmount() : payment.getExpectedAmount();
         if (refundAmount == null) {
-            throw new IllegalStateException("환불 금액을 확인할 수 없습니다 merchantPaymentId=" + payment.getId());
+            throw new ServiceErrorException(ERR_REFUND_AMOUNT_UNKNOWN);
         }
 
         // Refund 레코드 생성/갱신 REQUESTED
@@ -300,8 +257,7 @@ public class PaymentService {
             cancelResponse = portOneClient.cancelPayment(payment.getMerchantPaymentId(), cancelRequest);
         } catch (Exception e) {
             auditTxService.markRefundFailed(refund, "PortOne 환불 API 호출 실패: " + e.getMessage());
-            throw new IllegalStateException("PortOne 환불 API 호출 실패: " +
-                    "merchantPaymentId=" + merchantPaymentId, e);
+            throw new ServiceErrorException(ERR_PORTONE_API_FAILED);
         }
 
         // portOne 응답 검증 (취소 완료 확인)
@@ -320,18 +276,17 @@ public class PaymentService {
     @Transactional
     public void syncFromPortOneWebhook(String merchantPaymentId, PortOnePaymentResponse portOne) {
         if (merchantPaymentId == null || merchantPaymentId.isBlank()) {
-            throw new IllegalArgumentException("merchantPaymentId는 필수 입니다");
+            throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "merchantPaymentId는 필수입니다");
         }
         if (portOne == null) {
-            throw new IllegalArgumentException("portOne가 존재하지 않습니다");
+            throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL);
         }
 
         // 웹훅 <-> confirm/환불 레이스 컨디션 (동시성 잠금)
         Payment payment = paymentRepository.findByMerchantPaymentId(merchantPaymentId).orElseGet(
                 () -> paymentRepository.findByPortonePaymentId(
                         portOne.transactionId()).orElseThrow(
-                () -> new IllegalStateException("결제가 존재하지 않습니다 merchantPaymentId=" + merchantPaymentId +
-                        ", transactionId=" + portOne.transactionId())
+                () -> new ServiceErrorException(ERR_PAYMENT_NOT_FOUND)
         ));
 
         Order order = payment.getOrder();
@@ -376,9 +331,9 @@ public class PaymentService {
                                 ? payment.getActualAmount()
                                 : payment.getExpectedAmount();
                 if (refundAmount == null) {
-                    throw new IllegalStateException("환불 금액 스냅샷이 없습니다 merchantPaymentId=" + payment.getMerchantPaymentId());
+                    throw new ServiceErrorException(ERR_REFUND_AMOUNT_UNKNOWN);
                 }
-                refund = Refund.request(payment, refundAmount, "PortOne Webhook cancelled");
+                refund = Refund.request(payment, refundAmount, "PortOne Webhook 취소 처리");
                 refund = auditTxService.saveRefundRequested(refund);
             }
 
@@ -391,7 +346,7 @@ public class PaymentService {
     private BigDecimal requireActualAmount(PortOnePaymentResponse portOne) {
         BigDecimal actual = portOne.amount() != null ? portOne.amount().total() : null;
         if (actual == null) {
-            throw new IllegalStateException("PortOne 결제 금액을 확인할 수 없습니다");
+            throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL, "PortOne 결제 금액을 확인할 수 없습니다");
         }
         return actual;
     }
@@ -399,15 +354,16 @@ public class PaymentService {
     // 결제 금액 검증
     private void validatePaymentAmount(Payment payment, BigDecimal actualAmount, String portonePaymentId) {
         BigDecimal expected = payment.getExpectedAmount();
-        if (expected == null || actualAmount == null) {
-            throw new IllegalStateException("결제 금액 정보가 없습니다 paymentId=" + payment.getId());
+        if (expected == null) {
+            throw new ServiceErrorException(ERR_INTERNAL_SERVER, "결제 예상 금액 정보가 없습니다");
+        }
+        if (actualAmount == null) {
+            throw new ServiceErrorException(ERR_PORTONE_RESPONSE_NULL, "결제 확정 금액 정보가 없습니다");
         }
         if (expected.compareTo(actualAmount) != 0) {
             payment.fail(portonePaymentId);
             paymentRepository.save(payment);
-            throw new IllegalStateException(
-                    "결제 금액이 일치하지 않습니다 expected=" + payment.getExpectedAmount()
-                            + ", actual=" + actualAmount);
+            throw new ServiceErrorException(ERR_PAYMENT_AMOUNT_MISMATCH);
         }
     }
 
@@ -425,10 +381,7 @@ public class PaymentService {
             if (qty > stock) {
                 payment.fail(portonePaymentId);
                 paymentRepository.save(payment);
-                throw new IllegalStateException(
-                        "재고 부족: productId=" + op.getProduct().getId()
-                                + ", quantity=" + qty + ", stock=" + stock
-                );
+                throw new ServiceErrorException(ERR_NOT_ENOUGH_STOCK);
             }
         }
 
@@ -514,18 +467,14 @@ public class PaymentService {
         if (response == null || !response.isSucceeded()) {
             String status = (response == null || response.cancellation() == null)
                     ? null : response.cancellation().status();
-            throw new IllegalStateException("PortOne 환불 실패 merchantPaymentId="
-                    + merchantPaymentId + ", status=" + status);
+            throw new ServiceErrorException(ERR_PORTONE_API_FAILED, "PortOne 환불 실패: merchantPaymentId=" + merchantPaymentId + ", status=" + status);
         }
     }
 
     // 전액 환불 금액 검증
     private void requireFullRefundAmount(BigDecimal cancelled, BigDecimal expected, String merchantPaymentId) {
         if (cancelled == null || expected == null || cancelled.compareTo(expected) != 0) {
-            throw new IllegalStateException(
-                    "PortOne 환불 금액 불일치 merchantPaymentId=" + merchantPaymentId
-                            + ", cancelled=" + cancelled + ", expected=" + expected
-            );
+            throw new ServiceErrorException(ERR_REFUND_AMOUNT_MISMATCH);
         }
     }
 

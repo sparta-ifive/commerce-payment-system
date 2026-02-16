@@ -1,4 +1,4 @@
-package com.spartaifive.commercepayment.exception;
+package com.spartaifive.commercepayment.common.exception;
 
 import org.springframework.http.HttpStatus;
 

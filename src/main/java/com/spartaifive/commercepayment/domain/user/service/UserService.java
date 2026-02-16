@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.user.service;
 
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.security.JwtTokenProvider;
 import com.spartaifive.commercepayment.domain.user.dto.request.LoginRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.SignupRequest;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -35,14 +38,14 @@ public class UserService {
     public SignupResponse signup(SignupRequest request) {
         // 이메일, 전화번호 중복 체크
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new ServiceErrorException(ERR_DUPLICATED_EMAIL);
         }
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("이미 사용 중인 전화번호입니다.");
+            throw new ServiceErrorException(ERR_DUPLICATED_PHONE);
         }
         // 기본 멤버십 조회
         MembershipGrade normalGrade = membershipGradeRepository.findByName("NORMAL")
-                .orElseThrow(() -> new IllegalStateException("기본 멤버십(NORMAL)이 존재하지 않습니다."));
+                .orElseThrow(() -> new ServiceErrorException(ERR_MEMBERSHIP_GRADE_NOT_FOUND));
         // 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         // User 생성 (도메인 책임)
@@ -75,11 +78,11 @@ public class UserService {
         // 이메일로 찾기
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.")
+                        new ServiceErrorException(ERR_INVALID_CREDENTIALS)
                 );
         // 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new ServiceErrorException(ERR_INVALID_CREDENTIALS);
         }
 
         // 기존 Refresh Token 정리 - 재로그인
@@ -120,17 +123,17 @@ public class UserService {
         UserRefreshToken refreshToken = userRefreshTokenRepository
                 .findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.")
+                        new ServiceErrorException(ERR_REFRESH_TOKEN_INVALID)
                 );
 
         // 로그아웃 여부 확인
         if (refreshToken.getRevokedAt() != null) {
-            throw new IllegalArgumentException("이미 로그아웃된 토큰입니다.");
+            throw new ServiceErrorException(ERR_REFRESH_TOKEN_REVOKED);
         }
 
         // 만료 여부 확인
         if (refreshToken.getExpirationAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("리프레시 토큰이 만료되었습니다.");
+            throw new ServiceErrorException(ERR_REFRESH_TOKEN_EXPIRED);
         }
 
         User user = refreshToken.getUser();
@@ -152,7 +155,7 @@ public class UserService {
         UserRefreshToken refreshToken = userRefreshTokenRepository
                 .findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.")
+                        new ServiceErrorException(ERR_REFRESH_TOKEN_INVALID)
                 );
         // 이미 로그아웃된 토큰이면 통과
         if (refreshToken.getRevokedAt() != null) {
@@ -169,7 +172,7 @@ public class UserService {
      */
     public PaymentUserResponse getPaymentUser(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+                .orElseThrow(() -> new ServiceErrorException(ERR_USER_NOT_FOUND));
 
         // AuthController 참고하여 키 만듬
         String customerUid = "CUST_" + user.getId();
