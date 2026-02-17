@@ -1,6 +1,7 @@
 package com.spartaifive.commercepayment.domain.payment.service;
 
 import com.spartaifive.commercepayment.common.audit.AuditTxService;
+import com.spartaifive.commercepayment.common.constants.Constants;
 import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelRequest;
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelResponse;
@@ -28,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +49,7 @@ public class PaymentService {
     private final RefundRepository refundRepository;
     private final AuditTxService auditTxService;
     private final PointService pointService;
+    private final Constants constants;
 
     /**
      * 결제 시도(Attempt) 생성
@@ -66,10 +70,29 @@ public class PaymentService {
 
         BigDecimal expectedAmount = order.getTotalPrice();
 
+        // 1000원 이하의 결제는 금지
+        {
+            BigDecimal tmp = expectedAmount;
+            if (request.pointsToUse() != null) {
+                tmp = expectedAmount.subtract(request.pointsToUse());
+            }
+            if (tmp.compareTo(BigDecimal.valueOf(1000)) < 0) {
+                throw new ServiceErrorException(
+                        ERR_PAYMENT_AMOUNT_TOO_LOW,
+                        String.format("결제 금액 %s원이 최소 결제 금액 1000원 보다 적습니다", tmp)
+                );
+            }
+        }
+
+        if (request.pointsToUse() != null) {
+            expectedAmount = pointService.validatedAndSubtractPointFromOrderTotalPrice(
+                    userId, expectedAmount, request.pointsToUse());
+        }
+
         // merchantId 생성
         String merchantPaymentId = "pay_" + UUID.randomUUID();
 
-        Payment payment = Payment.createAttempt(userId, order, expectedAmount, merchantPaymentId);
+        Payment payment = Payment.createAttempt(userId, order, expectedAmount, request.pointsToUse(), merchantPaymentId);
         Payment savedPayment = paymentRepository.save(payment);
 
         return PaymentAttemptResponse.from(savedPayment);
@@ -206,6 +229,16 @@ public class PaymentService {
         // 결제 상태가 PAID 인지 확인
         if (payment.getPaymentStatus() != PaymentStatus.PAID) {
             throw new ServiceErrorException(ERR_REFUND_NOT_ALLOWED_PAYMENT_STATUS);
+        }
+
+        // 결제가 환불이 가능한 시기를 놓쳤는지 확인
+        {
+            LocalDateTime canRefundBefore = payment.getPaidAt().plus(constants.getRefundPeriod());
+
+            if (!LocalDateTime.now().isBefore(canRefundBefore)) {
+                // TODO: 환불 가능 기간을 고객이 읽기 쉽게 만들어 돌려주기
+                throw new ServiceErrorException(ERR_REFUND_TIMEOUT);
+            }
         }
 
         // 전액 환불 금액 스냅샷
@@ -375,6 +408,14 @@ public class PaymentService {
         Payment saved = paymentRepository.save(payment);
         orderRepository.save(order);
 
+        // point 사용
+        if (payment.getPointToSpend() != null) {
+            pointService.spendPoint(
+                    payment.getId(),
+                    order.getId(),
+                    payment.getUserId()
+            );
+        }
 
         // point 적립
         pointService.createPointAfterPaymentConfirm(
@@ -416,6 +457,10 @@ public class PaymentService {
         if (refund.getStatus() != RefundStatus.COMPLETED) {
             auditTxService.markRefundCompleted(refund);
         }
+
+        // 포인트 반환
+        pointService.voidPoints(
+                payment.getId(), order.getId(), payment.getUserId());
     }
 
     // portOne 응답 검증 (취소 완료 확인)
@@ -434,13 +479,13 @@ public class PaymentService {
         }
     }
 
-    // LocalDateTime.parse 불가로 임시 구현
     private LocalDateTime parsePortOneTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            return OffsetDateTime.parse(value).toLocalDateTime();
+            ZonedDateTime zoned = OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault());
+            return zoned.toLocalDateTime();
         } catch (DateTimeParseException ignored) {
             try {
                 return LocalDateTime.parse(value);

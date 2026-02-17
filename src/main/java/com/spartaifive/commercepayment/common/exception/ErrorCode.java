@@ -51,6 +51,7 @@ public enum ErrorCode {
     ERR_ORDER_ALREADY_REFUNDED(HttpStatus.CONFLICT, "환불된 주문은 재결제 할 수 없습니다"),
     ERR_PORTONE_PAYMENT_ID_MISMATCH(HttpStatus.CONFLICT, "이미 다른 portonePaymentId로 처리된 결제입니다"),
     ERR_PAYMENT_STATUS_TRANSITION_INVALID(HttpStatus.CONFLICT, "결제 상태 전이가 불가능합니다"),
+    ERR_PAYMENT_AMOUNT_TOO_LOW(HttpStatus.BAD_REQUEST, "결제 금액이 최소 결제 금액 보다 적습니다"),
 
     // ===== 환불(Refund) =====
     ERR_REFUND_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 환불 이력이 존재합니다"),
@@ -58,6 +59,7 @@ public enum ErrorCode {
     ERR_REFUND_NOT_ALLOWED_PAYMENT_STATUS(HttpStatus.CONFLICT, "환불이 불가능한 결제 상태입니다"),
     ERR_REFUND_AMOUNT_UNKNOWN(HttpStatus.CONFLICT, "환불 금액을 확인할 수 없습니다"),
     ERR_REFUND_AMOUNT_MISMATCH(HttpStatus.CONFLICT, "환불 금액이 일치하지 않습니다"),
+    ERR_REFUND_TIMEOUT(HttpStatus.BAD_REQUEST, "환불 가능 기간이 지났습니다"),
 
     // ===== 외부 연동(PortOne) =====
     ERR_PORTONE_RESPONSE_NULL(HttpStatus.BAD_GATEWAY, "PortOne 응답이 null 입니다"),

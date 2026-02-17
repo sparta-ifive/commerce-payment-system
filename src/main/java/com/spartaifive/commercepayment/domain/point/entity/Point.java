@@ -80,4 +80,25 @@ public class Point {
         this.originalPointAmount = amount;
         this.pointRemaining = amount;
     }
+
+    public void updatePointRemaining(BigDecimal newPointRemaining) {
+        if (this.originalPointAmount == null) {
+            throw new IllegalStateException("포인트는 잔액은 원래 포인트가 있어야만 업데이트 할 수 있습니다");
+        }
+        newPointRemaining = Objects.requireNonNull(newPointRemaining);
+
+        if (newPointRemaining.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException(
+                    "새 포인트 잔액이 음수 입니다"
+            );
+        }
+
+        if (newPointRemaining.compareTo(this.originalPointAmount) > 0) {
+            throw new IllegalStateException(
+                    String.format("새 포인트 잔액(%s)이 원래 포인트 작액(%s) 보다 큽니다", newPointRemaining, this.originalPointAmount)
+            );
+        }
+
+        this.pointRemaining =  newPointRemaining;
+    }
 }

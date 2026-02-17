@@ -65,8 +65,13 @@ public class Payment {
     /**
      * PortOne에서 조회한 결제 승인 금액
      */
-    @Column(name = "actual_amount", precision = 15, scale = 2)
+    @Column(name = "actual_amount", nullable = true, precision = 15, scale = 2)
     private BigDecimal actualAmount;
+    /**
+     * 사용자가 쓸 포인트 양 (스냅샷)
+     */
+    @Column(name = "point_to_spend", nullable = true, precision = 15, scale = 2)
+    private BigDecimal pointToSpend;
 
     @Column(name = "attempted_at")
     private LocalDateTime attemptedAt;
@@ -87,7 +92,7 @@ public class Payment {
     private String refundReason;
 
     public static Payment createAttempt(
-            Long userId, Order order, BigDecimal expectedAmount, String merchantPaymentId) {
+            Long userId, Order order, BigDecimal expectedAmount, BigDecimal pointToSpend, String merchantPaymentId) {
         if (userId == null) {
             throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "userId는 필수입니다");
         }
@@ -97,6 +102,10 @@ public class Payment {
         if (expectedAmount == null || expectedAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "주문 금액(예상 결제 금액)은 0보다 커야합니다");
         }
+        // 네, null 일 수도 있습니다.
+        if (pointToSpend != null && pointToSpend.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("포인트 사용금액은은 0이상 이어야 합니다");
+        }
         if (merchantPaymentId == null) {
             throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "merchantPaymentId가 존재하지 않습니다");
         }
@@ -104,6 +113,7 @@ public class Payment {
         payment.userId = userId;
         payment.order = order;
         payment.expectedAmount = expectedAmount;
+        payment.pointToSpend = pointToSpend;
         payment.merchantPaymentId = merchantPaymentId;
         payment.paymentStatus = PaymentStatus.READY;
         payment.attemptedAt = LocalDateTime.now();

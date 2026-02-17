@@ -121,6 +121,35 @@ public class PointSupportService {
         pointAuditRepository.saveAll(audits);
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal calculateUserPoints(
+            Long userId, 
+            boolean confirmedOnly
+    ) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new RuntimeException(String.format(
+                        "%s id의 고객을 찾지 못했습니다",userId))
+        );
+
+        List<Point> points = pointRepository.findPointByOwnerUser_Id(userId);
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Point point : points) {
+            if (point.getPointStatus().equals(PointStatus.CAN_BE_SPENT)) {
+                total = total.add(point.getPointRemaining());
+            }
+
+            if (!confirmedOnly && point.getPointStatus().equals(PointStatus.NOT_READY_TO_BE_SPENT)) {
+                BigDecimal paymentAmount = point.getParentPayment().getActualAmount();
+                Long rate = user.getMembershipGrade().getRate();
+                total = total.add(
+                        getPointAmountPerPurchase(paymentAmount, rate));
+            }
+        }
+
+        return total;
+    }
+
     public BigDecimal getPointAmountPerPurchase(
             BigDecimal paymentAmount,
             Long rate
@@ -131,4 +160,47 @@ public class PointSupportService {
 
         return point;
     }
+
+    public static List<PointDecrease> decreasePoints(
+            List<Point> points,
+            BigDecimal pointToSpend
+    ) {
+        List<PointDecrease> decreases = new ArrayList<>();
+
+        for (Point point : points) {
+            BigDecimal from = point.getPointRemaining();
+            BigDecimal to;
+
+            boolean doBreak = false;
+
+            if (point.getPointRemaining().compareTo(pointToSpend) < 0) {
+                pointToSpend = pointToSpend.subtract(point.getPointRemaining());
+                point.updatePointRemaining(BigDecimal.ZERO);
+                
+                to = BigDecimal.ZERO;
+            } else {
+                BigDecimal newPointRemaining = point.getPointRemaining();
+                newPointRemaining = newPointRemaining.subtract(pointToSpend);
+                point.updatePointRemaining(newPointRemaining);
+
+                to = newPointRemaining;
+
+                doBreak = true;
+            }
+            
+            decreases.add(new PointDecrease(point, from, to));
+
+            if (doBreak) {
+                break;
+            }
+        }
+
+        return decreases;
+    }
+
+    public static record PointDecrease (
+            Point point,
+            BigDecimal from,
+            BigDecimal to
+    ) {}
 }

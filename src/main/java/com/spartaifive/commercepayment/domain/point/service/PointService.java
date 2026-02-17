@@ -17,11 +17,15 @@ import com.spartaifive.commercepayment.domain.point.entity.Point;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PointService {
@@ -32,7 +36,7 @@ public class PointService {
     private final PointAuditRepository pointAuditRepository;
     private final PointSupportService pointSupportService;
 
-    // N+1을 막기 위해서 entity를 받을 수 도 있지만 일단은
+    // TODO: N+1을 막기 위해서 entity를 받을 수 도 있지만 일단은
     // 정상적으로 작동 하는 것을 확인 하는 것이 먼저기 때문에 성능은 포기하고
     // id를 받습니다.
     @Transactional
@@ -41,17 +45,11 @@ public class PointService {
             Long orderId,
             Long userId
     ) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 결제는 존재하지 않습니다", paymentId)));
+        Payment payment = getPaymentById(paymentId);
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 주문은 존재하지 않습니다", orderId)));
+        Order order = getOrderById(orderId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> 
-                        new IllegalStateException(String.format("%s 아이디의 고객은 존재하지 않습니다", userId)));
+        User user = getUserById(userId);
 
         // 포인트 생성시 결제는 완료여야 합니다.
         if (!payment.getPaymentStatus().equals(PaymentStatus.PAID)) {
@@ -81,32 +79,148 @@ public class PointService {
         pointAuditRepository.save(audit);
     }
 
+    // TODO: N+1을 막기 위해서 entity를 받을 수 도 있지만 일단은
+    // 정상적으로 작동 하는 것을 확인 하는 것이 먼저기 때문에 성능은 포기하고
+    // id를 받습니다.
     @Transactional(readOnly = true)
-    public BigDecimal getUserPoints(
-            Long userId, 
-            boolean confirmedOnly
+    public BigDecimal validatedAndSubtractPointFromOrderTotalPrice(
+            Long userId,
+            BigDecimal orderTotalPrice,
+            BigDecimal pointAmount
     ) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new RuntimeException(String.format(
-                        "%s id의 고객을 찾지 못했습니다",userId))
-        );
-
-        List<Point> points = pointRepository.findPointByOwnerUser_Id(userId);
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (Point point : points) {
-            if (point.getPointStatus().equals(PointStatus.CAN_BE_SPENT)) {
-                total = total.add(point.getPointRemaining());
-            }
-
-            if (!confirmedOnly && point.getPointStatus().equals(PointStatus.NOT_READY_TO_BE_SPENT)) {
-                BigDecimal paymentAmount = point.getParentPayment().getActualAmount();
-                Long rate = user.getMembershipGrade().getRate();
-                total = total.add(
-                        pointSupportService.getPointAmountPerPurchase(paymentAmount, rate));
-            }
+        if (pointAmount.compareTo(orderTotalPrice) > 0) {
+            throw new IllegalArgumentException("주문 총액보다 포인트를 더 사용할 수는 없습니다");
         }
 
-        return total;
+        BigDecimal userPoints = pointSupportService.calculateUserPoints(userId, true);
+
+        if (pointAmount.compareTo(userPoints) > 0) {
+            throw new IllegalArgumentException(
+                    String.format("유저의 잔액 포인트(%s)가 부족하여 (%s)의 포인트를 사용할 수 없습니다.", userPoints, pointAmount)
+            );
+        }
+
+        return orderTotalPrice.subtract(pointAmount);
+    }
+
+    @Transactional()
+    public void spendPoint(
+            Long paymentId,
+            Long orderId,
+            Long userId
+    ) {
+        Payment payment = getPaymentById(paymentId);
+
+        // 이 결제는 포인트를 쓸게 아니므로 돌려주기
+        if (payment.getPointToSpend() == null) {
+            return;
+        }
+
+        BigDecimal pointToSpend = payment.getPointToSpend();
+
+        // 결제가 0 포인트를 쓰고 싶다고 하면 그냥 돌려주기
+        if (pointToSpend.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        Order order = getOrderById(orderId);
+
+        User user = getUserById(userId);
+
+        // 포인트 생성시 결제는 완료여야 합니다.
+        if (!payment.getPaymentStatus().equals(PaymentStatus.PAID)) {
+            throw new RuntimeException("포인트는 확정된 결제로만 생성됩니다.");
+        }
+
+        // 포인트 생성시 주문은 완료여야 합니다.
+        if (!order.getStatus().equals(OrderStatus.COMPLETED)) {
+            throw new RuntimeException("포인트는 확정된 주문에서만 생성됩니다.");
+        }
+
+        // 유저한테 쓸 포인트가 있긴 한지 확인
+        BigDecimal userPoints = pointSupportService.calculateUserPoints(userId, true);
+
+        if (userPoints.compareTo(pointToSpend) < 0) {
+            throw new IllegalArgumentException(
+                    String.format("유저의 잔액 포인트(%s)가 부족하여 (%s)의 포인트를 사용할 수 없습니다.", userPoints, pointToSpend)
+            );
+        }
+
+        List<Point> points = pointRepository.findPointsThatCanBeSpentSortedByCreatedAt(user.getId());
+
+        // 포인트를 줄임
+        List<PointSupportService.PointDecrease> decreases = 
+            pointSupportService.decreasePoints(points, pointToSpend);
+
+        pointRepository.saveAll(decreases.stream().map(x -> x.point()).toList());
+
+        List<PointAudit> pointAudits = new ArrayList<>();
+
+        // 포인트를 줄인 사실 기록
+        for (PointSupportService.PointDecrease decrease : decreases) {
+            PointAudit audit = new PointAudit(
+                    user,
+                    order,
+                    payment,
+                    decrease.point(),
+                    PointAuditType.POINT_SPENT,
+                    decrease.from().subtract(decrease.to())
+            );
+
+            pointAudits.add(audit);
+        }
+
+        pointAuditRepository.saveAll(pointAudits);
+    }
+
+    @Transactional()
+    public void voidPoints(
+            Long paymentId,
+            Long orderId,
+            Long userId
+    ) {
+        Payment payment = paymentRepository.getReferenceById(paymentId);
+
+        Order order = orderRepository.getReferenceById(orderId);
+
+        User user = userRepository.getReferenceById(userId);
+
+        List<Point> points = pointRepository.getPointsToVoidPerUserAndPayment(userId, paymentId);
+        List<PointAudit> pointAudits = new ArrayList<>();
+
+        for (Point point : points) {
+            point.updatePointStatus(PointStatus.VOIDED);
+
+            PointAudit audit = new PointAudit(
+                    user,
+                    order,
+                    payment,
+                    point,
+                    PointAuditType.POINT_VOIDED
+            );
+
+            pointAudits.add(audit);
+        }
+
+        pointAuditRepository.saveAll(pointAudits);
+        pointRepository.saveAll(points);
+    }
+
+    private Payment getPaymentById(Long paymentId) {
+        return paymentRepository.findById(paymentId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 결제는 존재하지 않습니다", paymentId)));
+    }
+
+    private Order getOrderById(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 주문은 존재하지 않습니다", orderId)));
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> 
+                        new IllegalStateException(String.format("%s 아이디의 고객은 존재하지 않습니다", userId)));
     }
 }

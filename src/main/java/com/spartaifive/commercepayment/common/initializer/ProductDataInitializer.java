@@ -32,7 +32,8 @@ public class ProductDataInitializer implements ApplicationRunner {
                 new Product("포카칩", new BigDecimal("1000"), 10L, ProductStatus.ON_SALE, ProductCategory.FOOD, "맛있는 감자칩"),
                 new Product("배터리", new BigDecimal("2000"), 1L, ProductStatus.ON_SALE, ProductCategory.ELECTRONICS, "AA 배터리"),
                 new Product("요요", new BigDecimal("1500"), 5L, ProductStatus.DISCONTINUED ,ProductCategory.TOY, "재밌는 요요"),
-                new Product("모자", new BigDecimal("1500"), 3L, ProductStatus.ON_SALE, ProductCategory.CLOTHES, "그냥 모자")
+                new Product("모자", new BigDecimal("1500"), 3L, ProductStatus.ON_SALE, ProductCategory.CLOTHES, "그냥 모자"),
+                new Product("레고", new BigDecimal("5000"), 12L, ProductStatus.ON_SALE, ProductCategory.TOY, "재밌는 레고")
         );
 
         productRepository.saveAll(testProducts);

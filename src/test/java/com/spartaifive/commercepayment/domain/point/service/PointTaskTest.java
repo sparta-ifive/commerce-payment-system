@@ -46,6 +46,8 @@ public class PointTaskTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private PointService pointService;
+    @Autowired
+    private PointSupportService pointSupportService;
 
     @Autowired
     private PointTasks pointTasks;
@@ -209,10 +211,10 @@ public class PointTaskTest {
                 assertThat(user3.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("VIP").get().getName());
                 assertThat(user4.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("VVIP").get().getName());
 
-                assertThat(pointService.getUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
-                assertThat(pointService.getUserPoints(user2.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(500));
-                assertThat(pointService.getUserPoints(user3.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(3000));
-                assertThat(pointService.getUserPoints(user4.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(7500));
+                assertThat(pointSupportService.calculateUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
+                assertThat(pointSupportService.calculateUserPoints(user2.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(500));
+                assertThat(pointSupportService.calculateUserPoints(user3.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(3000));
+                assertThat(pointSupportService.calculateUserPoints(user4.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(7500));
 
                 tx.commit();
             } finally {
@@ -286,7 +288,7 @@ public class PointTaskTest {
                 user1 = em.find(User.class, Long.valueOf(user1.getId()));
 
                 assertThat(user1.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("NORMAL").get().getName());
-                assertThat(pointService.getUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
+                assertThat(pointSupportService.calculateUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
 
                 tx.commit();
             } finally {
@@ -323,7 +325,7 @@ public class PointTaskTest {
                 user1 = em.find(User.class, Long.valueOf(user1.getId()));
 
                 assertThat(user1.getMembershipGrade().getName()).isEqualTo(membershipGradeRepository.findByName("NORMAL").get().getName());
-                assertThat(pointService.getUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
+                assertThat(pointSupportService.calculateUserPoints(user1.getId(), true)).isEqualByComparingTo(BigDecimal.valueOf(10));
 
                 tx.commit();
             } finally {
@@ -352,6 +354,7 @@ public class PointTaskTest {
                     user.getId(),
                     order,
                     total,
+                    BigDecimal.ZERO,
                     UUID.randomUUID().toString()
             );
 
