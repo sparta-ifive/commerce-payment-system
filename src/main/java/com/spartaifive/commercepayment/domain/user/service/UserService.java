@@ -2,6 +2,7 @@ package com.spartaifive.commercepayment.domain.user.service;
 
 import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.common.security.JwtTokenProvider;
+import com.spartaifive.commercepayment.common.service.TimeService;
 import com.spartaifive.commercepayment.domain.user.dto.request.LoginRequest;
 import com.spartaifive.commercepayment.domain.user.dto.request.SignupRequest;
 import com.spartaifive.commercepayment.domain.user.dto.response.PaymentUserResponse;
@@ -16,8 +17,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
 
@@ -99,7 +98,7 @@ public class UserService {
         UserRefreshToken refreshToken = UserRefreshToken.create(
                 user,
                 refreshTokenValue,
-                LocalDateTime.now().plusDays(7)
+                TimeService.getCurrentTime().plusDays(7)
         );
 
         userRefreshTokenRepository.save(refreshToken);
@@ -132,7 +131,7 @@ public class UserService {
         }
 
         // 만료 여부 확인
-        if (refreshToken.getExpirationAt().isBefore(LocalDateTime.now())) {
+        if (refreshToken.getExpirationAt().isBefore(TimeService.getCurrentTime())) {
             throw new ServiceErrorException(ERR_REFRESH_TOKEN_EXPIRED);
         }
 

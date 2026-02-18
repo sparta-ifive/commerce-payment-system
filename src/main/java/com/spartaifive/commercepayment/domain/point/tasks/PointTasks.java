@@ -1,6 +1,7 @@
 package com.spartaifive.commercepayment.domain.point.tasks;
 
 import com.spartaifive.commercepayment.common.constants.Constants;
+import com.spartaifive.commercepayment.common.service.TimeService;
 import com.spartaifive.commercepayment.domain.point.service.PointSupportService;
 import com.spartaifive.commercepayment.domain.user.entity.MembershipGrade;
 import com.spartaifive.commercepayment.domain.user.repository.MembershipGradeRepository;
@@ -11,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,7 +19,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class PointTasks {
-    private final Clock clock;
     private final UserRepository userRepository;
     private final MembershipGradeRepository membershipGradeRepository;
     private final PointSupportService pointSupportService;
@@ -30,7 +29,7 @@ public class PointTasks {
     @Scheduled(cron = "${app.schedules.point-membership-batching}")
     @Transactional
     public void calculateMembershipAndReadyPoints() {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = TimeService.getCurrentTime();
 
         log.info("[POINT_TASK]: started updating user points and memberships");
 

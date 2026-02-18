@@ -7,6 +7,7 @@ import com.spartaifive.commercepayment.common.external.portone.PortOneCancelRequ
 import com.spartaifive.commercepayment.common.external.portone.PortOneCancelResponse;
 import com.spartaifive.commercepayment.common.external.portone.PortOneClient;
 import com.spartaifive.commercepayment.common.external.portone.PortOnePaymentResponse;
+import com.spartaifive.commercepayment.common.service.TimeService;
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.order.entity.OrderProduct;
 import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
@@ -235,7 +236,7 @@ public class PaymentService {
         {
             LocalDateTime canRefundBefore = payment.getPaidAt().plus(constants.getRefundPeriod());
 
-            if (!LocalDateTime.now().isBefore(canRefundBefore)) {
+            if (!TimeService.getCurrentTime().isBefore(canRefundBefore)) {
                 // TODO: 환불 가능 기간을 고객이 읽기 쉽게 만들어 돌려주기
                 throw new ServiceErrorException(ERR_REFUND_TIMEOUT);
             }

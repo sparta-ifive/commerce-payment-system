@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
+
 @Entity
 @Table(
         name = "users",
@@ -70,7 +72,7 @@ public class User {
             String encodedPassword,
             String phone
     ) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = TimeService.getCurrentTime();
 
         return User.builder()
                 .membershipGrade(membershipGrade)
@@ -87,7 +89,7 @@ public class User {
 
     public void updateMembership(MembershipGrade membershipGrade) {
         Objects.requireNonNull(membershipGrade);
-        this.membershipUpdatedDate = LocalDateTime.now();
+        this.membershipUpdatedDate = TimeService.getCurrentTime();
         this.membershipGrade = membershipGrade;
     }
 

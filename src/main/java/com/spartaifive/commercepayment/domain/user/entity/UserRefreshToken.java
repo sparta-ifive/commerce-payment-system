@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
+
 @Entity
 @Table(name = "refresh_token")
 @Getter
@@ -41,12 +43,12 @@ public class UserRefreshToken {
     // 생성일은 엔티티에 추가시 자동생성
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = TimeService.getCurrentTime();
     }
 
     // 로그아웃 시 토큰 무효화 처리
     public void revoke() {
-        this.revokedAt = LocalDateTime.now();
+        this.revokedAt = TimeService.getCurrentTime();
     }
 
     // Refresh Token 생성용 팩토리 메서드

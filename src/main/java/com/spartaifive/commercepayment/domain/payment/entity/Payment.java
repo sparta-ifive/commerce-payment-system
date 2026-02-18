@@ -1,6 +1,7 @@
 package com.spartaifive.commercepayment.domain.payment.entity;
 
 import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
+import com.spartaifive.commercepayment.common.service.TimeService;
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -116,8 +117,8 @@ public class Payment {
         payment.pointToSpend = pointToSpend;
         payment.merchantPaymentId = merchantPaymentId;
         payment.paymentStatus = PaymentStatus.READY;
-        payment.attemptedAt = LocalDateTime.now();
-        payment.updatedAt = LocalDateTime.now();
+        payment.attemptedAt = TimeService.getCurrentTime();
+        payment.updatedAt = TimeService.getCurrentTime();
 
         return payment;
     }
@@ -136,8 +137,8 @@ public class Payment {
         this.portonePaymentId = portonePaymentId;
         this.actualAmount = actualAmount;
         this.paymentStatus = PaymentStatus.PAID;
-        this.paidAt = paidAt != null ? paidAt : LocalDateTime.now(); // portone paidAt이 없으면 씌우기
-        this.updatedAt = LocalDateTime.now();
+        this.paidAt = paidAt != null ? paidAt : TimeService.getCurrentTime(); // portone paidAt이 없으면 씌우기
+        this.updatedAt = TimeService.getCurrentTime();
 
         return this;
     }
@@ -153,8 +154,8 @@ public class Payment {
         }
 
         this.paymentStatus =  PaymentStatus.FAILED;
-        this.failedAt =LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.failedAt = TimeService.getCurrentTime();
+        this.updatedAt = TimeService.getCurrentTime();
 
         return this;
     }
@@ -164,8 +165,8 @@ public class Payment {
 
         this.refundReason = reason;
         this.paymentStatus = PaymentStatus.REFUNDED;
-        this.refundedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.refundedAt = TimeService.getCurrentTime();
+        this.updatedAt = TimeService.getCurrentTime();
         return this;
     }
 

@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.refund.entity;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -76,13 +77,13 @@ public class Refund {
 
     public void complete() {
         this.status = RefundStatus.COMPLETED;
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = TimeService.getCurrentTime();
     }
 
     public void fail(String failReason) {
         this.status = RefundStatus.FAILED;
         this.failReason = failReason;
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = TimeService.getCurrentTime();
     }
 
 }
