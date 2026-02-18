@@ -53,6 +53,15 @@ public enum ErrorCode {
     ERR_PAYMENT_STATUS_TRANSITION_INVALID(HttpStatus.CONFLICT, "결제 상태 전이가 불가능합니다"),
     ERR_PAYMENT_AMOUNT_TOO_LOW(HttpStatus.BAD_REQUEST, "결제 금액이 최소 결제 금액 보다 적습니다"),
 
+    // ===== 포인트 (Point) =====
+    ERR_POINT_NOT_FOUND(HttpStatus.NOT_FOUND, "포인트를 찾을 수 없습니다"),
+    ERR_POINT_FAILED_TO_UPDATE_POINT_AMOUNT(HttpStatus.INTERNAL_SERVER_ERROR, "포인트의 양을 업데이트 하는데 실패했습니다"),
+    ERR_POINT_FAILED_TO_CREATE_POINT(HttpStatus.INTERNAL_SERVER_ERROR, "포인트 생성을 실패했습니다"),
+    ERR_POINT_FAILED_TO_SPEND_POINT(HttpStatus.INTERNAL_SERVER_ERROR, "포인트를 쓰는데 실패했습니다"),
+    ERR_POINT_INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "포인트의 양이 부족합니다"),
+    ERR_POINT_POINT_EXCEEDS_PAYMENT(HttpStatus.BAD_REQUEST, "결제 금액보다 더 많은 포인트를 사용할려고 합니다"),
+    ERR_POINT_FAILED_TO_CALCULATE_TOTAL(HttpStatus.BAD_REQUEST, "포인트 총합을 계산하는데 실패했습니다"),
+
     // ===== 환불(Refund) =====
     ERR_REFUND_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 환불 이력이 존재합니다"),
     ERR_REFUND_NOT_ALLOWED_ORDER_STATUS(HttpStatus.CONFLICT, "환불이 불가능한 주문 상태입니다"),

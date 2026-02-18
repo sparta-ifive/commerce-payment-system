@@ -185,7 +185,8 @@ public class UserService {
                 user.getEmail(),
                 user.getName(),
                 formattedPhone,
-                user.getTotalPoint().longValue()
+                user.getPointsReadyToSpend(),
+                user.getPointsNotReadyToSpend()
         );
     }
 

@@ -1,8 +1,10 @@
 package com.spartaifive.commercepayment.domain.user.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -48,11 +50,17 @@ public class User {
     @Column(name = "membership_updated_date", nullable = false)
     private LocalDateTime membershipUpdatedDate;
 
-    @Column(name = "total_point", nullable = false)
-    private Integer totalPoint;
+    // 아래 두 필드는 유저가 갖고 있는 포인트 총량을 나타냅니다.
+    // 그리고 장담컨데 저희가 뭘하던 틀릴 것입니다.
+    // 정말로 단순히 유저가 포인트를 얼마 가지고 있는지 알려주고 싶을때 쓸려고 저장하는 값입니다.
+    // 결제시에는 **절대** 믿지 마세요
+    @Column(name = "points_ready_to_spend", nullable = false, precision = 15, scale = 2)
+    @Min(0)
+    private BigDecimal pointsReadyToSpend;
 
-    @Column(name = "total_paid_amount", nullable = false)
-    private Integer totalPaidAmount;
+    @Column(name = "points_not_ready_to_spend", nullable = false, precision = 15, scale = 2)
+    @Min(0)
+    private BigDecimal pointsNotReadyToSpend;
 
 
     public static User create(
@@ -72,8 +80,8 @@ public class User {
                 .phone(phone)
                 .createdAt(now)
                 .membershipUpdatedDate(now)
-                .totalPoint(0)
-                .totalPaidAmount(0)
+                .pointsReadyToSpend(BigDecimal.ZERO)
+                .pointsNotReadyToSpend(BigDecimal.ZERO)
                 .build();
     }
 
@@ -81,5 +89,64 @@ public class User {
         Objects.requireNonNull(membershipGrade);
         this.membershipUpdatedDate = LocalDateTime.now();
         this.membershipGrade = membershipGrade;
+    }
+
+    /**
+     * 사용 가능한 포인트를 update 합니다.
+     * 0 미만으로 설정 할려고 무시하고 false를 돌려줍니다.
+     * @param toSet 새 포인트 값
+     * @return update 성공 실패 여부
+     */
+    public boolean updatePointsReadyToSpend(BigDecimal toSet) {
+        if (toSet.compareTo(BigDecimal.ZERO) < 0) {
+            return false;
+        }
+        this.pointsReadyToSpend = toSet;
+        return true;
+    }
+
+    /**
+     * 사용 불가능한 포인트를 update 합니다.
+     * 0 미만으로 설정 할려고 무시하고 false를 돌려줍니다.
+     * @param toSet 새 포인트 값
+     * @return update 성공 실패 여부
+     */
+    public boolean updatePointsNotReadyToSpend(BigDecimal toSet) {
+        if (toSet.compareTo(BigDecimal.ZERO) < 0) {
+            return false;
+        }
+        this.pointsNotReadyToSpend = toSet;
+        return true;
+    }
+
+    /**
+     * 사용 가능한 포인트를 update 합니다.
+     * 0 미만으로 설정 할려고 할경우 0으로 설정합니다
+     * @param toSet 새 포인트 값
+     * @return clamping을 했는지 안했는지
+     */
+    public boolean updatePointsReadyToSpendClamped(BigDecimal toSet) {
+        boolean clampedToZero = false;
+        if (toSet.compareTo(BigDecimal.ZERO) < 0) {
+            toSet = BigDecimal.ZERO;
+            clampedToZero = true;
+        }
+        this.pointsReadyToSpend = toSet;
+        return clampedToZero;
+    }
+
+    /**
+     * 사용 불가능한 포인트를 update 합니다.
+     * 0 미만으로 설정 할려고 할경우 0으로 설정합니다
+     * @return clamping을 했는지 안했는지
+     */
+    public boolean updatePointsNotReadyToSpendClamped(BigDecimal toSet) {
+        boolean clampedToZero = false;
+        if (toSet.compareTo(BigDecimal.ZERO) < 0) {
+            toSet = BigDecimal.ZERO;
+            clampedToZero = true;
+        }
+        this.pointsNotReadyToSpend = toSet;
+        return clampedToZero;
     }
 }

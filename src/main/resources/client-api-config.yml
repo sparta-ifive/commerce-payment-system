@@ -114,10 +114,14 @@ api:
               required: true
               description: 사용자 전화번호 (KG 이니시스 필수)
               usage: PortOne payment window customer.phoneNumber
-            - name: pointBalance
+            - name: pointsReadyToSpend
               type: number
               required: true
-              description: 현재 포인트 잔액
+              description: 사용 가능 포인트 잔액
+            - name: pointsNotReadyToSpend
+              type: number
+              required: true
+              description: 아직은 사용 불가능한 포인트 잔액
 
     # ========================================
     # 상품 & 주문 (Product & Order)

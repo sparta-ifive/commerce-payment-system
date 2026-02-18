@@ -1,5 +1,7 @@
 package com.spartaifive.commercepayment.domain.user.dto.response;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -10,5 +12,6 @@ public class PaymentUserResponse {
     private String email;
     private String name;
     private String phone;
-    private Long pointBalance;
+    private BigDecimal pointsReadyToSpend;
+    private BigDecimal pointsNotReadyToSpend;
 }

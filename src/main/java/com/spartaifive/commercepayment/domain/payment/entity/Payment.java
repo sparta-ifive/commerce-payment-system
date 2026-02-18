@@ -104,7 +104,7 @@ public class Payment {
         }
         // 네, null 일 수도 있습니다.
         if (pointToSpend != null && pointToSpend.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("포인트 사용금액은은 0이상 이어야 합니다");
+            throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "포인트 사용금액은은 0이상 이어야 합니다");
         }
         if (merchantPaymentId == null) {
             throw new ServiceErrorException(ERR_NOT_VALID_VALUE, "merchantPaymentId가 존재하지 않습니다");

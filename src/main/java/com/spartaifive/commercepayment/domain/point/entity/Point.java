@@ -1,5 +1,7 @@
 package com.spartaifive.commercepayment.domain.point.entity;
 
+import com.spartaifive.commercepayment.common.exception.ErrorCode;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
 import com.spartaifive.commercepayment.domain.order.entity.Order;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.user.entity.User;
@@ -45,10 +47,10 @@ public class Point {
     @JoinColumn(nullable = false, name = "owner_user_id")
     User ownerUser;
 
-    // TODO: 왜 nullable인지 설명하기
-    @Column(precision = 10, scale = 2, nullable = true)
+    // 포인트의 실제 양은 포인트 확정시 (포인트를 생성한 결제가 환불 불가능해진 이후) 정해집니다
+    @Column(precision = 15, scale = 2, nullable = true)
     BigDecimal originalPointAmount;
-    @Column(precision = 10, scale = 2, nullable = true)
+    @Column(precision = 15, scale = 2, nullable = true)
     BigDecimal pointRemaining;
 
     @NotNull
@@ -83,18 +85,21 @@ public class Point {
 
     public void updatePointRemaining(BigDecimal newPointRemaining) {
         if (this.originalPointAmount == null) {
-            throw new IllegalStateException("포인트는 잔액은 원래 포인트가 있어야만 업데이트 할 수 있습니다");
+            throw new ServiceErrorException(
+                    ErrorCode.ERR_POINT_FAILED_TO_UPDATE_POINT_AMOUNT, 
+                    "포인트는 잔액은 원래 포인트가 있어야만 업데이트 할 수 있습니다");
         }
         newPointRemaining = Objects.requireNonNull(newPointRemaining);
 
         if (newPointRemaining.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalStateException(
-                    "새 포인트 잔액이 음수 입니다"
-            );
+            throw new ServiceErrorException(
+                    ErrorCode.ERR_POINT_FAILED_TO_UPDATE_POINT_AMOUNT,
+                    "새 포인트 잔액이 음수 입니다");
         }
 
         if (newPointRemaining.compareTo(this.originalPointAmount) > 0) {
-            throw new IllegalStateException(
+            throw new ServiceErrorException(
+                    ErrorCode.ERR_POINT_FAILED_TO_UPDATE_POINT_AMOUNT,
                     String.format("새 포인트 잔액(%s)이 원래 포인트 작액(%s) 보다 큽니다", newPointRemaining, this.originalPointAmount)
             );
         }

@@ -73,6 +73,11 @@
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <p id="user-points-ready-to-spend">실 포인트 양</p>
+                <p id="user-points-not-ready-to-spend">적립 예정 양</p>
+            </div>
+
             <!-- 주문 목록 -->
             <div class="card">
                 <div class="card-header">
@@ -209,10 +214,24 @@
                 if (!validateApiResponse('get-current-user', currentUser)) {
                     throw new Error('API 응답 형식이 올바르지 않습니다.');
                 }
+
+                dispalyUserPoints()
             } catch (error) {
                 console.error('Failed to load user info:', error);
                 currentUser = null;
             }
+        }
+
+        function dispalyUserPoints() {
+            if (!currentUser) {
+                return;
+            }
+
+            let ready = document.getElementById('user-points-ready-to-spend');
+            let notReady = document.getElementById('user-points-not-ready-to-spend');
+
+            ready.innerText = `실 포인트 양: ${currentUser.pointsReadyToSpend}`
+            notReady.innerText = `적립 예정 양: ${currentUser.pointsNotReadyToSpend}`
         }
 
         // 주문 목록 로드
@@ -480,6 +499,8 @@
 
                 updatePaymentStep(step2, 'success', '결제 확정 완료');
                 showNotification('결제가 완료되었습니다! (포인트: ' + points.toLocaleString() + 'P 사용)', 'success');
+
+                dispalyUserPoints()
 
                 // 3초 후 결제 과정 숨기기 및 주문 목록 새로고침
                 setTimeout(async () => {

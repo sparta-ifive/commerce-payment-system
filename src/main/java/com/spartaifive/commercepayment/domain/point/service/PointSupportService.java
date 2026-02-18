@@ -1,8 +1,14 @@
 package com.spartaifive.commercepayment.domain.point.service;
 
+import com.spartaifive.commercepayment.common.exception.ErrorCode;
+import com.spartaifive.commercepayment.common.exception.ServiceErrorException;
+import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
-import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
+import com.spartaifive.commercepayment.domain.point.dto.MembershipUpdateInfo;
+import com.spartaifive.commercepayment.domain.point.dto.PointUpdateInfo;
+import com.spartaifive.commercepayment.domain.point.dto.UserAndReadyPointsTotal;
+import com.spartaifive.commercepayment.domain.point.dto.UserAndNotReadyPointsInfo;
 import com.spartaifive.commercepayment.domain.point.entity.Point;
 import com.spartaifive.commercepayment.domain.point.entity.PointAudit;
 import com.spartaifive.commercepayment.domain.point.entity.PointAuditType;
@@ -22,7 +28,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -32,93 +40,123 @@ public class PointSupportService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final PointRepository pointRepository;
+    private final OrderRepository orderRepository;
     private final PointAuditRepository pointAuditRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateUserMembership(
-            Long userId,
+            List<Long> userIds,
             List<MembershipGrade> membershipGrades,
             LocalDateTime paymentConfirmDay
     ) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new RuntimeException(String.format(
-                        "%s id의 고객을 찾지 못했습니다",userId))
-        );
+        List<MembershipUpdateInfo> updateInfos = pointRepository.getMembershipUpdateInfo(
+                userIds, paymentConfirmDay);
 
-        List<Payment> payments = paymentRepository.findByUserId(user.getId());
+        List<User> users = new ArrayList<>();
 
-        BigDecimal confirmedPaymentTotal = BigDecimal.ZERO;
+        for (MembershipUpdateInfo info : updateInfos) {
+            User user = info.user();
 
-        for (Payment p : payments) {
-            if (
-                    p.getPaymentStatus().equals(PaymentStatus.PAID) &&
-                    p.getPaidAt().isBefore(paymentConfirmDay)
-            ) {
-                confirmedPaymentTotal = confirmedPaymentTotal.add(p.getActualAmount());
+            MembershipGrade userMembership = null;
+
+            for (MembershipGrade membershipGrade : membershipGrades) {
+                if (info.confirmedPaymentTotal().compareTo(membershipGrade.getRequiredPurchaseAmount()) <= 0) {
+                    userMembership = membershipGrade;
+                    break;
+                }
+            }
+
+            if (userMembership != null) {
+                user.updateMembership(userMembership);
+                users.add(user);
             }
         }
 
-        MembershipGrade userMembership = null;
-
-        for (MembershipGrade membershipGrade : membershipGrades) {
-            if (confirmedPaymentTotal.compareTo(membershipGrade.getRequiredPurchaseAmount()) <= 0) {
-                userMembership = membershipGrade;
-                break;
-            }
-        }
-
-        if (userMembership != null) {
-            user.updateMembership(userMembership);
-            userRepository.save(user);
-        }
+        userRepository.saveAll(users);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateUserPoints(
-            Long userId,
+            List<Long> userIds,
             List<MembershipGrade> membershipGrades,
             LocalDateTime paymentConfirmDay
     ) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new RuntimeException(String.format(
-                        "%s id의 고객을 찾지 못했습니다",userId))
-        );
+        List<PointUpdateInfo> updateInfos = pointRepository.getPointUpdateInfos(
+                userIds, paymentConfirmDay);
 
-        MembershipGrade membership = user.getMembershipGrade();
-        if (membership == null) {
-            return;
+        List<Point> pointsToSave = new ArrayList<>();
+        List<PointAudit> audits = new ArrayList<>();
+        
+        for (PointUpdateInfo info : updateInfos) {
+            if (info.membershipGrade() == null) {
+                continue;
+            }
+
+            Point point = info.point();
+            MembershipGrade membership = info.membershipGrade();
+            Payment payment = info.payment();
+
+            BigDecimal pointAmount = getPointAmountPerPurchase(
+                    point.getParentPayment().getActualAmount(),
+                    membership.getRate()
+            );
+
+            point.initPointAmount(pointAmount);
+            point.updatePointStatus(PointStatus.CAN_BE_SPENT);
+
+            PointAudit audit = new PointAudit(
+                    userRepository.getReferenceById(point.getOwnerUser().getId()),
+                    orderRepository.getReferenceById(point.getParentOrder().getId()),
+                    payment,
+                    point,
+                    PointAuditType.POINT_BECAME_READY,
+                    pointAmount
+            );
+
+            audits.add(audit);
+            pointsToSave.add(point);
         }
 
-        List<Point> points = pointRepository.findPointByOwnerUser(user);
-        List<PointAudit> audits = new ArrayList<>();
+        pointRepository.saveAll(pointsToSave);
+        pointAuditRepository.saveAll(audits);
+    }
 
-        for (Point point : points) {
-            if (
-                    point.getPointStatus().equals(PointStatus.NOT_READY_TO_BE_SPENT) &&
-                    point.getParentPayment().getPaidAt().isBefore(paymentConfirmDay)
-            ) {
-                BigDecimal pointAmount = getPointAmountPerPurchase(
-                        point.getParentPayment().getActualAmount(),
-                        membership.getRate()
-                );
-                point.initPointAmount(pointAmount);
-                point.updatePointStatus(PointStatus.CAN_BE_SPENT);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateUserPointsTotal(
+            List<Long> userIds
+    ) {
+        Map<Long, User> idToUser = new HashMap<>();
 
-                PointAudit audit = new PointAudit(
-                        user,
-                        point.getParentOrder(),
-                        point.getParentPayment(),
-                        point,
-                        PointAuditType.POINT_BECAME_READY,
-                        pointAmount
-                );
+        List<User> users = userRepository.findAllUsersByIds(userIds);
 
-                audits.add(audit);
+        for (User user : users) {
+            idToUser.put(user.getId(), user);
+        }
+
+        List<UserAndReadyPointsTotal> pointTotals = pointRepository.getUserAndReadyPointsTotal(userIds);
+
+        for (UserAndReadyPointsTotal total : pointTotals)  {
+            User user = idToUser.get(total.userId());
+            if (user != null) {
+                user.updatePointsReadyToSpendClamped(total.amount());
             }
         }
 
-        pointRepository.saveAll(points);
-        pointAuditRepository.saveAll(audits);
+        List<UserAndNotReadyPointsInfo> infos = pointRepository.getUserAndNotReadyPointsInfo(userIds);
+
+        for (UserAndNotReadyPointsInfo info : infos) {
+            User user = idToUser.get(info.userId());
+            if (user != null) {
+                 BigDecimal pointAmount = getPointAmountPerPurchase(
+                         info.paymentTotal(),
+                         info.membershipRate()
+                 );
+
+                 user.updatePointsNotReadyToSpendClamped(pointAmount);
+            }
+        }
+
+        userRepository.saveAll(users);
     }
 
     @Transactional(readOnly = true)
@@ -126,31 +164,35 @@ public class PointSupportService {
             Long userId, 
             boolean confirmedOnly
     ) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new RuntimeException(String.format(
-                        "%s id의 고객을 찾지 못했습니다",userId))
-        );
+        List<UserAndReadyPointsTotal> totals = pointRepository.getUserAndReadyPointsTotal(List.of(userId));
 
-        List<Point> points = pointRepository.findPointByOwnerUser_Id(userId);
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (Point point : points) {
-            if (point.getPointStatus().equals(PointStatus.CAN_BE_SPENT)) {
-                total = total.add(point.getPointRemaining());
-            }
-
-            if (!confirmedOnly && point.getPointStatus().equals(PointStatus.NOT_READY_TO_BE_SPENT)) {
-                BigDecimal paymentAmount = point.getParentPayment().getActualAmount();
-                Long rate = user.getMembershipGrade().getRate();
-                total = total.add(
-                        getPointAmountPerPurchase(paymentAmount, rate));
-            }
+        if (!(totals.size() == 1 && totals.get(0).userId().equals(userId))) {
+            throw new ServiceErrorException(ErrorCode.ERR_POINT_FAILED_TO_CALCULATE_TOTAL);
         }
 
-        return total;
+        if (confirmedOnly) {
+            return totals.get(0).amount();
+        }
+
+        List<UserAndNotReadyPointsInfo> infos = pointRepository.getUserAndNotReadyPointsInfo(List.of(userId));
+
+        if (!(infos.size() == 1 && infos.get(0).userId().equals(userId))) {
+            throw new ServiceErrorException(ErrorCode.ERR_POINT_FAILED_TO_CALCULATE_TOTAL);
+        }
+
+        BigDecimal pointsNotConfirmed = getPointAmountPerPurchase(
+            infos.get(0).paymentTotal(),
+            infos.get(0).membershipRate()
+        );
+
+        return totals.get(0).amount().add(pointsNotConfirmed);
     }
 
-    public BigDecimal getPointAmountPerPurchase(
+    // ============
+    // UTIL들
+    // ============
+
+    public static BigDecimal getPointAmountPerPurchase(
             BigDecimal paymentAmount,
             Long rate
     ) {

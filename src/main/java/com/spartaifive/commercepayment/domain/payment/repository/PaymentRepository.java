@@ -27,13 +27,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     }
 
     List<Payment> findByUserId(Long userId);
-
-//    // 유저에따라 결제 완료된 가격의 총합을 구하기
-//    @Query(
-//            "SELECT new com.spartaifive.commercepayment.domain.payment.dto.ConfirmedPaymentAndUser(p.userId, SUM(p.actualAmount)) " +
-//            "from Payment p WHERE p.paymentStatus = com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus.PAID AND " +
-//            "p.paidAt > :refundDate " +
-//            "group by p.userId"
-//    )
-//    List<ConfirmedPaymentAndUser> getConfirmedPaymentAndUsers(@Param("refundDate") LocalDateTime refundDate);
 }

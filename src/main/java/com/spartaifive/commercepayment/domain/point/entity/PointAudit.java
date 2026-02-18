@@ -28,20 +28,23 @@ public class PointAudit {
     //TODO: 정말 여기에 모든게 ManyToOne이 맞나?
     //TODO: 정말 여기에 nullable이 맞는지?
 
+    // 뭔가 auditing에 fk check를 하는게 이상한거 같기도 하고,
+    // 또 나중에 참고용으로 넣는 것도 좋을 거 같아서 fk check를 끕니다.
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "user_id")
+    @JoinColumn(nullable = false, name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "order_id")
+    @JoinColumn(nullable = false, name = "order_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "payment_id")
+    @JoinColumn(nullable = false, name = "payment_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     Payment payment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "point_id")
+    @JoinColumn(nullable = false, name = "point_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     Point point;
 
     @NotNull
@@ -49,7 +52,8 @@ public class PointAudit {
     @Enumerated(EnumType.STRING)
     PointAuditType pointAuditType;
 
-    // TODO: 왜 nullable인지 설명하기
+    // point는 생성시 포인트이 양이 정해져 있지 않습니다.
+    // 이를 반영하고자 point audit도 양이 nullable입니다.
     @Column(precision = 10, scale = 2, nullable = true)
     @Min(0)
     BigDecimal amount;
