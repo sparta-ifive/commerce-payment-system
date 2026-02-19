@@ -162,3 +162,19 @@ src/main/java/com/spartaifive/commercepayment/
 > - **상황**: 어떤 상황에서 발생했는지
 > - **원인**: 원인 분석
 > - **해결**: 해결 방법
+
+> ### 🔴 문제: 포인트 합을 구하는 SQL문이 에러가 남
+> - **상황**: 포인트 적립을 java쪽에서 하는게 아닌 DB쪽에서 할려고 할 때 에러가 났습니다
+> - **원인**: sql문에서 `SUM(NULL)`은 0이 아닌 NULL이여서 그랬습니다
+> - **해결**: `COALESCE(SUM(pay.actualAmount), 0))`를 사용했습니다
+
+> ### 🔴 문제: 포인트 내역을 업데이트 할 때 deadlock이 걸림
+> - **상황**: 포인트 내역을 업데이트 할려고 할 때 어떤이유에서인지 deadlock이 걸렸습니다
+> - **원인**: 포인트가 결제에 대해 FK를 가지고 있고 결제 transaction중 `PESSIMISTIC_WRITE`가 걸리기 때문에 새 transaction을 실행할 경우 FR check에 deadlock이 걸렸습니다
+> - **해결**: 포인트 내역을 새 transaction에서 생성하지 않고 기존 transaction에 참여하도록 했으며 포인트 내역의 FK를 껐습니다
+
+> ### 🔴 문제: test마다 DB를 갈아업기
+> - **상황**: integration test중 transaction rollback만으로는 DB를 초기화 할수 없었습니다
+> - **원인**: test할 코드중 새 transaction을 생성하는 코드가 있었기 때문입니다
+> - **해결**: 테스트 마다 DB를 reset하는 helper 클래스를 따로 만들었습니다
+
