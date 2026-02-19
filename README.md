@@ -71,10 +71,10 @@
 ![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
 
 ### ✔️ Deploy
-> ✏️ **[배포 환경을 작성해 주세요]** (예: AWS EC2, Docker, GitHub Actions 등)
+![AWS EC2](https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazon-ec2&logoColor=white)
 
 ### ✔️ DBMS
-> ✏️ **[사용한 데이터베이스를 작성해 주세요]** (예: MySQL, PostgreSQL)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 
 ---
 
