@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.user.entity;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -7,8 +8,6 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
-
-import com.spartaifive.commercepayment.common.service.TimeService;
 
 @Entity
 @Table(

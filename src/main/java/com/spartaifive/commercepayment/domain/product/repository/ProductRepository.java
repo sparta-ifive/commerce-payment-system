@@ -1,9 +1,8 @@
 package com.spartaifive.commercepayment.domain.product.repository;
 
+import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.spartaifive.commercepayment.domain.product.entity.Product;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;

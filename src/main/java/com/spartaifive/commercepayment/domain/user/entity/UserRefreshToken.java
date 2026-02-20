@@ -1,5 +1,6 @@
 package com.spartaifive.commercepayment.domain.user.entity;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -7,8 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
-import com.spartaifive.commercepayment.common.service.TimeService;
 
 @Entity
 @Table(name = "refresh_token")

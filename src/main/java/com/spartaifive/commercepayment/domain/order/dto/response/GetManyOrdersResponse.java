@@ -1,14 +1,13 @@
 package com.spartaifive.commercepayment.domain.order.dto.response;
 
+import com.spartaifive.commercepayment.domain.order.entity.Order;
+import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import com.spartaifive.commercepayment.domain.order.entity.Order;
-import com.spartaifive.commercepayment.domain.order.entity.OrderStatus;
-
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor

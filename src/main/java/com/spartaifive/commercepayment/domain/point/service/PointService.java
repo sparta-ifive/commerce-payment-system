@@ -8,6 +8,7 @@ import com.spartaifive.commercepayment.domain.order.repository.OrderRepository;
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
 import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import com.spartaifive.commercepayment.domain.payment.repository.PaymentRepository;
+import com.spartaifive.commercepayment.domain.point.entity.Point;
 import com.spartaifive.commercepayment.domain.point.entity.PointAudit;
 import com.spartaifive.commercepayment.domain.point.entity.PointAuditType;
 import com.spartaifive.commercepayment.domain.point.entity.PointStatus;
@@ -15,17 +16,14 @@ import com.spartaifive.commercepayment.domain.point.repository.PointAuditReposit
 import com.spartaifive.commercepayment.domain.point.repository.PointRepository;
 import com.spartaifive.commercepayment.domain.user.entity.User;
 import com.spartaifive.commercepayment.domain.user.repository.UserRepository;
-import com.spartaifive.commercepayment.domain.point.entity.Point;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
