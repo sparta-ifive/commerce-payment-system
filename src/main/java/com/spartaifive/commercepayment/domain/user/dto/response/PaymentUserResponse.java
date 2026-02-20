@@ -1,9 +1,9 @@
 package com.spartaifive.commercepayment.domain.user.dto.response;
 
-import java.math.BigDecimal;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.math.BigDecimal;
 
 @Getter
 @AllArgsConstructor

@@ -1,13 +1,12 @@
 package com.spartaifive.commercepayment.domain.webhookevent.entity;
 
+import com.spartaifive.commercepayment.common.service.TimeService;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import com.spartaifive.commercepayment.common.service.TimeService;
 
 import java.time.LocalDateTime;
 

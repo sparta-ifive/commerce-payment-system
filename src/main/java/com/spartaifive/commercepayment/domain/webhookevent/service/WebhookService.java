@@ -15,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-import static com.spartaifive.commercepayment.common.exception.ErrorCode.*;
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.ERR_PORTONE_RESPONSE_NULL;
+import static com.spartaifive.commercepayment.common.exception.ErrorCode.ERR_WEBHOOK_PROCESS_FAILED;
 
 @RequiredArgsConstructor
 @Service
