@@ -2,16 +2,14 @@ package com.spartaifive.commercepayment.domain.order.entity;
 
 import com.spartaifive.commercepayment.domain.product.entity.Product;
 import jakarta.persistence.*;
-
-import java.math.BigDecimal;
-
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.math.BigDecimal;
 
 @Getter
 @Entity

@@ -3,14 +3,12 @@ package com.spartaifive.commercepayment.common.auth;
 import com.spartaifive.commercepayment.domain.user.entity.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 @Getter
 @RequiredArgsConstructor

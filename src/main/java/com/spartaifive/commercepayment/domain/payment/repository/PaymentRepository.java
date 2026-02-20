@@ -1,7 +1,6 @@
 package com.spartaifive.commercepayment.domain.payment.repository;
 
 import com.spartaifive.commercepayment.domain.payment.entity.Payment;
-import com.spartaifive.commercepayment.domain.payment.entity.PaymentStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

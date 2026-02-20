@@ -1,14 +1,11 @@
 package com.spartaifive.commercepayment.domain.webhookevent.dto;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @AllArgsConstructor

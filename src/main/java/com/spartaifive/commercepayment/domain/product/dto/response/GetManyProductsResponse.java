@@ -1,13 +1,12 @@
 package com.spartaifive.commercepayment.domain.product.dto.response;
 
-import java.math.BigDecimal;
-
 import com.spartaifive.commercepayment.domain.product.entity.Product;
 import com.spartaifive.commercepayment.domain.product.entity.ProductCategory;
 import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
 
 @Getter
 @RequiredArgsConstructor

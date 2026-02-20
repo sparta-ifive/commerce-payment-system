@@ -1,16 +1,14 @@
 package com.spartaifive.commercepayment.common.initializer;
 
 import com.spartaifive.commercepayment.domain.product.entity.Product;
-import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
 import com.spartaifive.commercepayment.domain.product.entity.ProductCategory;
+import com.spartaifive.commercepayment.domain.product.entity.ProductStatus;
+import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import com.spartaifive.commercepayment.domain.product.repository.ProductRepository;
-
-import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
