@@ -4,6 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum RefundStatus {
+    REQUESTED("REQUESTED", "환불 요청"),
     COMPLETED("COMPLETED", "환불 완료"),
     FAILED("FAILED", "환불 실패");
 

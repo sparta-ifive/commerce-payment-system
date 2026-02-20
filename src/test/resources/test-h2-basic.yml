@@ -1,0 +1,28 @@
+spring:
+  profiles:
+    active: test
+
+  # h2 사용
+  datasource:
+    url: jdbc:h2:mem:test
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+    hibernate:
+      ddl-auto: create
+
+# webhook 비밀 설정
+portone:
+  webhook:
+    secret: whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=
+
+# membership 등급이 없으면 돌아가지 않으므로 추가
+app:
+  add-test-memberships: true

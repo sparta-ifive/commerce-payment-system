@@ -73,6 +73,11 @@
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <p id="user-points-ready-to-spend">실 포인트 양</p>
+                <p id="user-points-not-ready-to-spend">적립 예정 양</p>
+            </div>
+
             <!-- 주문 목록 -->
             <div class="card">
                 <div class="card-header">
@@ -209,10 +214,24 @@
                 if (!validateApiResponse('get-current-user', currentUser)) {
                     throw new Error('API 응답 형식이 올바르지 않습니다.');
                 }
+
+                dispalyUserPoints()
             } catch (error) {
                 console.error('Failed to load user info:', error);
                 currentUser = null;
             }
+        }
+
+        function dispalyUserPoints() {
+            if (!currentUser) {
+                return;
+            }
+
+            let ready = document.getElementById('user-points-ready-to-spend');
+            let notReady = document.getElementById('user-points-not-ready-to-spend');
+
+            ready.innerText = `실 포인트 양: ${currentUser.pointsReadyToSpend}`
+            notReady.innerText = `적립 예정 양: ${currentUser.pointsNotReadyToSpend}`
         }
 
         // 주문 목록 로드
@@ -225,8 +244,8 @@
                     return;
                 }
 
-                if (result && Array.isArray(result)) {
-                    orders = result;
+                if (result && Array.isArray(result.data)) {
+                    orders = result.data;
                     renderOrders();
                 } else {
                     showNotification('주문 목록이 배열 형식이 아닙니다', 'error');
@@ -249,7 +268,7 @@
             }
 
             // PENDING 상태의 주문만 필터링
-            const pendingOrders = orders.filter(order => order.status === 'PENDING');
+            const pendingOrders = orders.filter(order => order.status === 'PAYMENT_PENDING');
 
             if (pendingOrders.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">결제 대기 중인 주문이 없습니다</p>';
@@ -257,8 +276,8 @@
             }
 
             const ordersHtml = pendingOrders.map(order => {
-                const statusClass = order.status === 'PENDING' ? 'warning' :
-                                  order.status === 'PAID' ? 'success' : 'secondary';
+                const statusClass = order.status === 'PAYMENT_PENDING' ? 'warning' :
+                                  order.status === 'COMPLETED' ? 'success' : 'secondary';
 
                 return `
                     <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); margin-bottom: 1rem;">
@@ -279,7 +298,7 @@
                                     주문 금액
                                 </div>
                                 <div style="font-size: 1.5rem; font-weight: 700;">
-                                    ${order.totalAmount.toLocaleString()}원
+                                    ${order.totalPrice.toLocaleString()}원
                                 </div>
                             </div>
                             <button class="btn btn-primary" onclick='openPointsModal("${order.orderId}")'>
@@ -296,7 +315,7 @@
         // 포인트 모달 열기
         function openPointsModal(orderId) {
             // orders 배열에서 orderId로 주문 찾기
-            const order = orders.find(o => o.orderId === orderId);
+            const order = orders.find(o => o.orderId == orderId);
 
             if (!order) {
                 showNotification('주문을 찾을 수 없습니다', 'error');
@@ -305,7 +324,7 @@
 
             selectedOrder = order;
             document.getElementById('modal-order-number').textContent = order.orderNumber;
-            document.getElementById('modal-order-amount').textContent = order.totalAmount.toLocaleString() + '원';
+            document.getElementById('modal-order-amount').textContent = order.totalPrice.toLocaleString() + '원';
             document.getElementById('points-input').value = 0;
 
             updateModalAmounts();
@@ -326,7 +345,7 @@
             if (!selectedOrder) return;
 
             const points = parseInt(document.getElementById('points-input').value) || 0;
-            const originalAmount = selectedOrder.totalAmount;
+            const originalAmount = selectedOrder.totalPrice;
             const finalAmount = Math.max(0, originalAmount - points);
 
             document.getElementById('modal-original-amount').textContent = originalAmount.toLocaleString() + '원';
@@ -423,7 +442,7 @@
                 return;
             }
 
-            if (points > selectedOrder.totalAmount) {
+            if (points > selectedOrder.totalPrice) {
                 showNotification('사용 포인트가 주문 금액보다 클 수 없습니다', 'error');
                 return;
             }
@@ -437,7 +456,7 @@
                 const orderToProcess = {
                     orderId: selectedOrder.orderId,
                     orderNumber: selectedOrder.orderNumber,
-                    totalAmount: selectedOrder.totalAmount,
+                    totalAmount: selectedOrder.totalPrice,
                     currency: selectedOrder.currency || 'KRW'
                 };
 
@@ -445,7 +464,7 @@
                 closePointsModal();
 
                 // 1단계: 결제 생성 및 PortOne SDK 호출 (openPortOnePayment 사용)
-                const finalAmount = Math.max(0, orderToProcess.totalAmount - points);
+                const finalAmount = Math.max(0, orderToProcess.totalPrice - points);
                 step1 = addPaymentStep(`결제 시작... (포인트: ${points.toLocaleString()}P, 최종 금액: ${finalAmount.toLocaleString()}원)`, 'loading');
 
                 const paymentData = {
@@ -480,6 +499,8 @@
 
                 updatePaymentStep(step2, 'success', '결제 확정 완료');
                 showNotification('결제가 완료되었습니다! (포인트: ' + points.toLocaleString() + 'P 사용)', 'success');
+
+                dispalyUserPoints()
 
                 // 3초 후 결제 과정 숨기기 및 주문 목록 새로고침
                 setTimeout(async () => {

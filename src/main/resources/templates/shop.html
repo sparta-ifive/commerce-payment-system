@@ -129,8 +129,10 @@
                     return false;
                 }
 
-                if (result && Array.isArray(result)) {
-                    products = result;
+                const data = result.data;
+
+                if (data && Array.isArray(data)) {
+                    products = data;
                     showNotification('API에서 상품 로드 성공', 'success');
                     return true;
                 } else {
@@ -177,11 +179,11 @@
                         <div class="price">₩${product.price.toLocaleString()}</div>
                         <div style="margin: 0.5rem 0; font-size: 0.9rem;">${stockStatus}</div>
                         <div class="quantity-control">
-                            <button class="quantity-btn" onclick="updateQuantity('${product.id}', -1)"
+                            <button class="quantity-btn" onclick="updateQuantity('${product.productId}', -1)"
                                 ${product.stock === 0 ? 'disabled' : ''}>-</button>
-                            <input type="number" class="quantity-input" id="qty-${product.id}"
+                            <input type="number" class="quantity-input" id="qty-${product.productId}"
                                 value="0" min="0" max="${product.stock}" readonly>
-                            <button class="quantity-btn" onclick="updateQuantity('${product.id}', 1)"
+                            <button class="quantity-btn" onclick="updateQuantity('${product.productId}', 1)"
                                 ${product.stock === 0 ? 'disabled' : ''}>+</button>
                         </div>
                     </div>
@@ -190,7 +192,9 @@
         }
 
         function updateQuantity(productId, delta) {
-            const product = products.find(p => p.id === productId);
+            console.log(products);
+            const product = products.find(p => p.productId == productId);
+            console.log(product);
             if (!product) return;
 
             const input = document.getElementById(`qty-${productId}`);
@@ -219,7 +223,7 @@
             Object.keys(cart).forEach(productId => {
                 const qty = cart[productId];
                 if (qty > 0) {
-                    const product = products.find(p => p.id === productId);
+                    const product = products.find(p => p.productId == productId);
                     const subtotal = product.price * qty;
                     total += subtotal;
                     html += `
@@ -305,8 +309,10 @@
             // 서버로 전송 (productId, quantity만)
             // 가격 계산과 재고 확인은 서버에서 처리
             const orderData = {
-                items: items
+                orderProducts: items
             };
+
+            console.log(orderData);
 
             try {
                 const result = await makeApiRequest('create-order', {
@@ -318,7 +324,9 @@
                     throw new Error('API 응답 형식이 올바르지 않습니다.');
                 }
 
-                if (result.orderId) {
+                console.log(result);
+
+                if (result.data.order.orderId) {
                     showNotification('주문 생성 완료!', 'success');
                     setTimeout(() => {
                         window.location.href = `/pages/orders?orderId=${result.orderId}`;
