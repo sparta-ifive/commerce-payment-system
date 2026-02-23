@@ -153,6 +153,28 @@ src/main/java/com/spartaifive/commercepayment/
 
 ---
 
+## Diagram
+
+```mermaid
+flowchart TB
+    UI[Client UI<br/>Thymeleaf payment-demo] -->|REST| SEC[Security Layer<br/>JWT Filter]
+    SEC --> CTRL[Controller Layer<br/>REST API]
+    CTRL --> SVC[Service Layer<br/>Payment/Order/Point/Webhook]
+    SVC --> JPA[Repository Layer<br/>Spring Data JPA]
+    JPA --> DB[(MySQL)]
+
+    SVC --> PO[External API<br/>PortOne V2<br/>Payment/Cancel/Webhook Verify]
+
+    subgraph Scheduler
+      TASK[PointTasks<br/>포인트/멤버십 확정 배치]
+    end
+
+    TASK --> SVC
+    TASK --> DB
+```
+
+---
+
 ## Trouble Shooting
 
 
@@ -177,5 +199,6 @@ src/main/java/com/spartaifive/commercepayment/
 > - **상황**: integration test중 transaction rollback만으로는 DB를 초기화 할수 없었습니다
 > - **원인**: test할 코드중 새 transaction을 생성하는 코드가 있었기 때문입니다
 > - **해결**: 테스트 마다 DB를 reset하는 helper 클래스를 따로 만들었습니다
+
 
 
